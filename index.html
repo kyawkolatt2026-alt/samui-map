@@ -3,18 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v6.3</title>
+    <title>Samui Rider Pro v6.4</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --main: #ff4757; --bg: #0b0b0d; --glass: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: white; overflow: hidden; }
+        :root { --main: #ff4757; --bg: #0b0b0d; --glass: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --warning: #f1c40f; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', 'Pyidaungsu', sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
         /* Floating Top Info */
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .update-note { 
+            background: rgba(241, 196, 15, 0.15); 
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            font-size: 11px; 
+            padding: 8px;
+            text-align: center; 
+            border-radius: 12px;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
         .chip { background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--border); padding: 12px 18px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-        .update-note { font-size: 10px; color: #888; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
 
         /* Bottom Sheet UI */
         .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); backdrop-filter: blur(40px); border-radius: 30px 30px 0 0; border-top: 1px solid var(--border); transform: translateY(calc(100% - 110px)); transition: 0.5s cubic-bezier(0.1, 0.9, 0.2, 1); padding: 20px 25px 40px 25px; }
@@ -28,27 +38,27 @@
         .log-box { max-height: 100px; overflow-y: auto; background: rgba(255,255,255,0.02); border-radius: 15px; padding: 5px; margin-bottom: 10px; }
         .log-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 11px; color: #ccc; }
 
-        /* Report Button & Text */
+        /* Report Area */
         .report-area { text-align: center; margin-top: 10px; }
-        .report-btn { width: 75px; height: 75px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 26px; position: relative; box-shadow: 0 15px 40px rgba(255, 71, 87, 0.4); margin: 0 auto 10px auto; display: block; }
+        .report-btn { width: 80px; height: 80px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 28px; position: relative; box-shadow: 0 15px 40px rgba(255, 71, 87, 0.5); margin: 0 auto 12px auto; display: block; cursor: pointer; }
         .ring { position: absolute; top: -5px; left: -5px; transform: rotate(-90deg); pointer-events: none; }
-        .hold-text { font-size: 11px; color: #ff4757; font-weight: bold; animation: fade 1.5s infinite; }
-        @keyframes fade { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .hold-text { font-size: 13px; color: #fff; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); animation: pulseText 1.5s infinite; }
+        @keyframes pulseText { 0%, 100% { opacity: 0.6; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } }
 
         /* Markers */
         .p-marker { width: 25px; height: 25px; background: var(--main); border: 3px solid white; border-radius: 50%; position: relative; box-shadow: 0 0 15px var(--main); }
         .p-marker::after { content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px; border: 3px solid var(--main); border-radius: 50%; animation: ripple 1.2s infinite; opacity: 0; }
         @keyframes ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
-        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 4px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--accent); }
+        .u-marker { width: 20px; height: 20px; background: var(--accent); border: 4px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--accent); }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="update-note">Data resets every 20 mins for accuracy</div>
+    <div class="update-note">🚨 တိကျမှုရှိစေရန် ၂၀ မိနစ်အတွင်း သတင်းများကိုသာ ပြပေးထားပါသည်</div>
     <div class="chip">
         <span style="font-weight:700; font-size:12px;">ACTIVE REPORTS: <span id="count" style="color:var(--main)">0</span></span>
-        <i class="fas fa-cog" onclick="toggleSheet()"></i>
+        <i class="fas fa-sliders-h" onclick="toggleSheet()"></i>
     </div>
 </div>
 
@@ -59,21 +69,21 @@
     
     <div class="setting-card">
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <button class="mode-btn active" id="streetBtn" onclick="setMapView('street')">Street</button>
+            <button class="mode-btn active" id="streetBtn" onclick="setMapView('street')">Street View</button>
             <button class="mode-btn" id="satBtn" onclick="setMapView('sat')">Satellite</button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
-            <span>Radius: <span id="dv" style="color:var(--accent); font-weight:bold;">500</span>m</span>
+            <span>အချက်ပေးဧရိယာ: <span id="dv" style="color:var(--accent); font-weight:bold;">500</span>m</span>
             <input type="checkbox" id="alertOn" checked>
         </div>
-        <input type="range" id="distRange" min="300" max="1500" step="100" value="500" style="width:100%; margin-top:8px;" oninput="document.getElementById('dv').innerText=this.value">
+        <input type="range" id="distRange" min="300" max="1500" step="100" value="500" style="width:100%; margin-top:10px;" oninput="document.getElementById('dv').innerText=this.value">
     </div>
 
     <div class="log-box" id="logList"></div>
 
     <div class="report-area">
         <button class="report-btn" id="holdBtn">
-            <svg width="85" height="85" class="ring"><circle cx="42.5" cy="42.5" r="40" stroke="white" stroke-width="4" fill="transparent" stroke-dasharray="251" stroke-dashoffset="251" id="ringOffset" /></svg>
+            <svg width="90" height="90" class="ring"><circle cx="45" cy="45" r="42" stroke="white" stroke-width="5" fill="transparent" stroke-dasharray="264" stroke-dashoffset="264" id="ringOffset" /></svg>
             <i class="fas fa-bullhorn"></i>
         </button>
         <div class="hold-text">သတင်းပို့ရန် ၃ စက္ကန့် ဖိထားပါ</div>
@@ -124,9 +134,9 @@
     });
 
     const btn = document.getElementById('holdBtn'), ring = document.getElementById('ringOffset');
-    let timer, prog = 251;
-    const start = (e) => { e.preventDefault(); timer = setInterval(() => { prog -= 8.3; ring.style.strokeDashoffset = prog; if(prog<=0){ clearInterval(timer); fire(); reset(); } }, 100); };
-    const reset = () => { clearInterval(timer); prog = 251; ring.style.strokeDashoffset = 251; };
+    let timer, prog = 264;
+    const start = (e) => { e.preventDefault(); timer = setInterval(() => { prog -= 8.8; ring.style.strokeDashoffset = prog; if(prog<=0){ clearInterval(timer); fire(); reset(); } }, 100); };
+    const reset = () => { clearInterval(timer); prog = 264; ring.style.strokeDashoffset = 264; };
     btn.addEventListener('touchstart', start); btn.addEventListener('touchend', reset);
     btn.addEventListener('mousedown', start); btn.addEventListener('mouseup', reset);
 
@@ -148,7 +158,7 @@
             list.innerHTML += `<div class="log-item"><span>🚨 Police Spotted</span><span style="color:#888">${t}</span></div>`;
             if(!markers[doc.id]) markers[doc.id] = L.marker([d.lat, d.lng], { icon: L.divIcon({ className: 'p-marker' }) }).addTo(map).bindPopup(`Reported: ${t}`);
         });
-        if(snaps.empty) list.innerHTML = '<div style="text-align:center; padding:15px; color:#555; font-size:11px;">No reports in last 20 mins</div>';
+        if(snaps.empty) list.innerHTML = '<div style="text-align:center; padding:15px; color:#555; font-size:11px;">လောလောဆယ် သတင်းမရှိသေးပါ</div>';
     });
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
