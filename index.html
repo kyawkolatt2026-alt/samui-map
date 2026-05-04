@@ -3,110 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samui Safety Pro</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Samui Safety Map v2.1</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #ff4757; --dark: #121212; --glass: rgba(255, 255, 255, 0.1); }
         body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; }
 
-        /* Floating Menu Button */
+        /* Menu Button */
         .menu-toggle {
-            position: fixed; top: 20px; left: 20px; z-index: 1100;
+            position: fixed; top: 20px; left: 20px; z-index: 1500;
             background: var(--dark); color: white; border: 1px solid var(--glass);
             width: 45px; height: 45px; border-radius: 12px; display: flex;
             align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
         }
 
-        /* Side Menu Drawer */
+        /* Sidebar */
         .sidebar {
             position: fixed; top: 0; left: -280px; width: 280px; height: 100%;
-            background: rgba(18, 18, 18, 0.95); backdrop-filter: blur(15px);
-            z-index: 1200; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            color: white; padding: 80px 20px 20px; box-sizing: border-box;
+            background: rgba(18, 18, 18, 0.98); backdrop-filter: blur(20px);
+            z-index: 2000; transition: 0.4s ease; color: white; padding: 80px 20px 20px;
             border-right: 1px solid var(--glass);
         }
         .sidebar.active { left: 0; }
-        .sidebar h2 { font-size: 20px; margin-bottom: 30px; color: var(--primary); }
         
-        .menu-item { margin-bottom: 25px; }
-        .menu-item label { display: block; font-size: 13px; color: #aaa; margin-bottom: 10px; }
-        .menu-item select, .menu-item input {
-            width: 100%; background: var(--glass); border: 1px solid var(--glass);
-            color: white; padding: 10px; border-radius: 8px; outline: none;
+        .menu-item { margin-bottom: 20px; }
+        .menu-item label { display: block; font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; }
+        .menu-item select {
+            width: 100%; background: #222; border: 1px solid #444;
+            color: white; padding: 12px; border-radius: 10px;
         }
 
-        /* Overlay */
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 1150; display: none;
+        /* Police Icon Styling */
+        .police-marker {
+            background: #ff4757; border: 3px solid white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 14px;
+            box-shadow: 0 0 20px #ff4757;
+            animation: pulse-red 1.5s infinite;
         }
-        .overlay.active { display: block; }
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
 
         /* Report Button */
         .report-btn { 
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: var(--primary); color: white; border: none; 
-            padding: 15px 30px; border-radius: 50px; font-weight: bold;
-            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.4); display: flex; align-items: center; gap: 10px;
+            padding: 18px 35px; border-radius: 50px; font-weight: bold; font-size: 16px;
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.5); display: flex; align-items: center; gap: 10px;
         }
 
-        /* Toast Notification */
-        #toast {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-            background: #2ed573; color: white; padding: 10px 20px; border-radius: 8px;
-            z-index: 2000; opacity: 0; transition: 0.3s; pointer-events: none;
-        }
+        /* Overlay */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1600; display: none; }
+        .overlay.active { display: block; }
     </style>
 </head>
 <body>
 
-<div class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-bars"></i></div>
-
+<div class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-cog"></i></div>
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
 
 <div class="sidebar" id="sidebar">
-    <h2><i class="fas fa-cog"></i> Settings</h2>
-    
+    <h2 style="color: var(--primary)">Samui Pro Settings</h2>
     <div class="menu-item">
-        <label>မြေပုံအမျိုးအစား (Map Style)</label>
+        <label>Map View</label>
         <select id="mapStyle" onchange="changeMapStyle(this.value)">
-            <option value="y">Satellite Hybrid (အစစ်)</option>
-            <option value="m">Normal Road (ရိုးရိုး)</option>
-            <option value="p">Terrain (တောင်တန်း)</option>
+            <option value="y">Satellite Hybrid (Google)</option>
+            <option value="m">Standard Road (Google)</option>
         </select>
     </div>
-
     <div class="menu-item">
-        <label>အသံဖြင့်သတိပေးချက် (Voice Alert)</label>
+        <label>Voice Alert</label>
         <select id="voiceSetting">
-            <option value="on">ဖွင့်ထားမည် (On)</option>
-            <option value="off">ပိတ်ထားမည် (Off)</option>
+            <option value="on">On (အော်မည်)</option>
+            <option value="off">Off (ပိတ်ထားမည်)</option>
         </select>
-    </div>
-
-    <div class="menu-item">
-        <label>သတိပေးရမည့်အကွာအဝေး (Alert Distance)</label>
-        <select id="distSetting">
-            <option value="0.5">၅၀၀ မီတာ (Standard)</option>
-            <option value="1.0">၁ ကီလိုမီတာ (Early Bird)</option>
-        </select>
-    </div>
-
-    <div style="position: absolute; bottom: 20px; font-size: 10px; color: #555;">
-        Samui Safety v2.0 Beta
     </div>
 </div>
 
 <div id="map"></div>
-
 <button class="report-btn" id="reportBtn" onclick="reportNow()">
-    <i class="fas fa-bullhorn"></i> 🚨 ဒီနေရာမှာ ဖမ်းနေတယ်
+    <i class="fas fa-shield-alt"></i> 🚨 ဒီနေရာမှာ ဖမ်းနေတယ်
 </button>
-
-<div id="toast">တင်ပြီးပါပြီ ✅</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -126,42 +108,36 @@
     const db = getFirestore(app);
     const spotsRef = collection(db, "police_spots");
 
-    // Initialize Map with Google Hybrid
     var map = L.map('map', { zoomControl: false }).setView([9.5120, 100.0137], 13);
-    let currentTileLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    let tileLayer = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
         maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3']
     }).addTo(map);
 
-    window.changeMapStyle = function(type) {
-        map.removeLayer(currentTileLayer);
-        currentTileLayer = L.tileLayer('http://{s}.google.com/vt/lyrs='+type+'&x={x}&y={y}&z={z}', {
+    window.changeMapStyle = (type) => {
+        map.removeLayer(tileLayer);
+        tileLayer = L.tileLayer('http://{s}.google.com/vt/lyrs='+type+'&x={x}&y={y}&z={z}', {
             maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3']
         }).addTo(map);
     };
 
-    // Toggle Sidebar
-    window.toggleMenu = function() {
+    window.toggleMenu = () => {
         document.getElementById('sidebar').classList.toggle('active');
         document.getElementById('overlay').classList.toggle('active');
     };
 
     let activeMarkers = {};
-    let alertedSpots = new Set();
 
-    // Firestore Sync
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const q = query(spotsRef, where("time", ">", twoHoursAgo));
-
-    onSnapshot(q, (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
+    onSnapshot(query(spotsRef, where("time", ">", new Date(Date.now() - 2 * 60 * 60 * 1000))), (snaps) => {
+        snaps.docChanges().forEach(change => {
             const data = change.doc.data();
             const id = change.doc.id;
             if (change.type === "added") {
-                const m = L.circleMarker([data.lat, data.lng], {
-                    radius: 12, color: 'white', fillColor: '#ff4757', fillOpacity: 0.8, weight: 2
-                }).addTo(map).bindPopup("🚨 ရဲဖမ်းနေသည်");
-                activeMarkers[id] = m;
-                checkDistance(data.lat, data.lng, id);
+                const icon = L.divIcon({
+                    className: 'police-marker',
+                    html: '<i class="fas fa-taxi"></i>', // ရဲကားပုံစံ Icon
+                    iconSize: [30, 30]
+                });
+                activeMarkers[id] = L.marker([data.lat, data.lng], {icon: icon}).addTo(map);
             }
             if (change.type === "removed") {
                 map.removeLayer(activeMarkers[id]);
@@ -170,47 +146,10 @@
         });
     });
 
-    function checkDistance(lat, lng, id) {
-        const isVoiceOn = document.getElementById('voiceSetting').value === 'on';
-        const alertDist = parseFloat(document.getElementById('distSetting').value);
-
-        if (navigator.geolocation && isVoiceOn && !alertedSpots.has(id)) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const dist = getDistance(pos.coords.latitude, pos.coords.longitude, lat, lng);
-                if (dist < alertDist) {
-                    const msg = new SpeechSynthesisUtterance("သတိပြုရန် ရှေ့တွင် ရဲဖမ်းနေပါသည်");
-                    msg.lang = 'my-MM';
-                    window.speechSynthesis.speak(msg);
-                    alertedSpots.add(id);
-                }
-            });
-        }
-    }
-
-    function getDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2-lat1) * Math.PI / 180;
-        const dLon = (lon2-lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-
-    window.reportNow = async function() {
-        const btn = document.getElementById('reportBtn');
-        const toast = document.getElementById('toast');
-        btn.disabled = true;
-        btn.innerHTML = "<i class='fas fa-spinner fa-spin'></i> ခဏစောင့်ပါ...";
-
+    window.reportNow = async () => {
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            await addDoc(spotsRef, {
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                time: serverTimestamp()
-            });
-            toast.style.opacity = "1";
-            setTimeout(() => { toast.style.opacity = "0"; }, 3000);
-            btn.disabled = false;
-            btn.innerHTML = "<i class='fas fa-bullhorn'></i> 🚨 ဒီနေရာမှာ ဖမ်းနေတယ်";
+            await addDoc(spotsRef, { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp() });
+            alert("တင်ပြီးပါပြီ!");
         });
     };
 
