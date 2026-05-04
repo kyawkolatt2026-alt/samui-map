@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v13.0</title>
+    <title>Samui Rider Pro v14.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,36 +11,41 @@
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* Long Press Overlay */
+        /* Report Long Press Ring */
         #hold-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 4000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); pointer-events: none; }
         .p-ring { width: 70px; height: 70px; border: 6px solid rgba(255,255,255,0.1); border-top: 6px solid var(--main); border-radius: 50%; }
-        .p-ring.done { border-color: var(--safe) !important; border-top-color: var(--safe) !important; }
+        .p-ring.done { border-color: var(--safe) !important; border-top-color: var(--safe) !important; transition: 0.3s; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spin { animation: spin 3s linear forwards; }
 
         /* UI Styling */
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; }
         .chip { background: var(--glass); border: 1px solid var(--border); padding: 10px; border-radius: 12px; flex: 1; text-align: center; font-size: 10px; backdrop-filter: blur(10px); font-weight: bold; }
-        .gps-btn { position: fixed; right: 20px; bottom: 120px; z-index: 1500; background: var(--accent); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; }
+        
+        .gps-btn { position: fixed; right: 20px; bottom: 120px; z-index: 1500; background: var(--accent); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .gps-btn.active { background: var(--safe); }
 
+        /* Sheet UI */
         .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 25px 25px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 15px; border-top: 1px solid var(--border); backdrop-filter: blur(25px); max-height: 90vh; display: flex; flex-direction: column; }
         .sheet.active { transform: translateY(0); }
         .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 10px auto; }
 
-        /* Chat Section */
-        .chat-container { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 10px; margin-top: 10px; border: 1px solid var(--border); overflow: hidden; min-height: 200px; }
-        #chat-messages { flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; }
-        .msg { font-size: 12px; margin-bottom: 8px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); }
-        .msg-user { color: var(--accent); font-weight: bold; margin-bottom: 2px; display: block; font-size: 10px; }
+        /* Chat System */
+        .chat-container { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 15px; padding: 10px; margin: 10px 0; border: 1px solid var(--border); overflow: hidden; min-height: 200px; }
+        #chat-messages { flex: 1; overflow-y: auto; font-size: 12px; margin-bottom: 10px; }
+        .msg { margin-bottom: 8px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); }
+        .msg-user { color: var(--accent); font-weight: bold; font-size: 10px; margin-bottom: 2px; display: block; }
         .chat-input-row { display: flex; gap: 8px; }
         .chat-input { flex: 1; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 20px; padding: 8px 15px; color: white; outline: none; font-size: 12px; }
 
-        .auth-input { width: 100%; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; box-sizing: border-box; margin-bottom: 10px; outline: none; }
-        .eye { position: absolute; right: 15px; top: 14px; color: #888; }
+        /* Auth UI */
+        .auth-container { display: flex; flex-direction: column; gap: 8px; }
+        .auth-input { width: 100%; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; box-sizing: border-box; outline: none; }
+        .eye { position: absolute; right: 15px; top: 12px; color: #888; }
+
         .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; }
-        .p-marker { width: 20px; height: 20px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--main); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); animation: p-pulse 1.5s infinite; }
+        @keyframes p-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body onclick="initAudio()">
@@ -48,10 +53,15 @@
 <div class="header">
     <div class="chip">NEARBY: <span id="near-count" style="color:var(--main)">0</span></div>
     <div class="chip">RADIUS: <span id="radius-val" style="color:var(--accent)">5</span>km</div>
-    <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">PANEL & CHAT</div>
+    <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">PANEL</div>
 </div>
 
-<div id="hold-overlay"><div class="p-ring" id="p-ring"></div></div>
+<div id="hold-overlay">
+    <div style="text-align:center;">
+        <div class="p-ring" id="p-ring"></div>
+        <div style="margin-top:15px; font-weight:bold;" id="p-text">၃ စက္ကန့်ဖိထားပါ</div>
+    </div>
+</div>
 
 <div class="gps-btn active" id="centerBtn" onclick="toggleFollow(true)"><i class="fas fa-crosshairs"></i></div>
 
@@ -61,39 +71,36 @@
     <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
     
     <div id="app-ui" style="display:none; flex-direction: column; flex: 1; overflow: hidden;">
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; margin-bottom: 10px;">
-            <span id="status-text" style="color:var(--safe)">● ONLINE</span>
-            <div style="display:flex; gap:10px;">
-                <span onclick="logout()" style="color:var(--main)">LOGOUT</span>
-            </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <span id="status-text" style="color:var(--safe); font-size:12px;">● LIVE UPDATING</span>
+            <button onclick="logout()" style="background:none; border:none; color:var(--main); font-size:10px;">LOGOUT</button>
         </div>
 
         <div class="chat-container">
-            <div style="font-size: 10px; color: #888; margin-bottom: 5px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">PUBLIC CHAT</div>
             <div id="chat-messages"></div>
             <div class="chat-input-row">
-                <input type="text" id="chat-msg" class="chat-input" placeholder="စာရိုက်ပါ...">
+                <input type="text" id="chat-msg" class="chat-input" placeholder="Riders များသို့ စာပို့ပါ...">
                 <button onclick="sendChat()" style="background:var(--accent); border:none; color:white; border-radius:50%; width:35px; height:35px;"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border);">
-                <label style="font-size: 10px; color: #888;">Range: <span id="range-ui">5</span> km</label>
+                <label style="font-size: 10px; color: #888;">Radius: <span id="range-ui">5</span> km</label>
                 <input type="range" min="1" max="20" value="5" oninput="updateRadius(this.value)" style="width:100%">
             </div>
-            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border);">
-                <label style="font-size: 10px; color: #888;">Style</label>
-                <select onchange="changeMap(this.value)" style="width: 100%; background: transparent; color: white; border: none; font-size: 12px;">
-                    <option value="m">Normal</option>
-                    <option value="s">Satellite</option>
-                </select>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); display:flex; flex-direction:column; justify-content:center;">
+                <label style="font-size: 10px; color: #888; margin-bottom: 5px;">Alert Sound</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="mute-label" style="font-size:10px;">ON</span>
+                    <input type="checkbox" id="alertToggle" checked onchange="toggleAlert(this.checked)">
+                </div>
             </div>
         </div>
     </div>
 
-    <div id="auth-ui" style="display: flex; flex-direction: column; gap: 5px;">
-        <h3 style="text-align:center; margin:0 0 10px 0;">Samui Rider Pro v13.0</h3>
+    <div id="auth-ui" class="auth-container">
+        <h3 style="text-align:center; margin:0 0 10px 0;">Samui Rider Pro</h3>
         
         <div id="reg-name" style="display:none;"><input type="text" id="uname" class="auth-input" placeholder="Username (နာမည်)"></div>
         <input type="email" id="email" class="auth-input" placeholder="Email">
@@ -109,11 +116,11 @@
         </div>
 
         <div id="auth-btns" style="display:flex; gap:10px;">
-            <button onclick="login()" style="background:var(--accent); flex:1;" class="auth-btn">LOGIN</button>
-            <button onclick="showReg()" style="background:var(--main); flex:1;" class="auth-btn">REGISTER</button>
+            <button onclick="login()" style="background:var(--accent); flex:1; padding:12px; border-radius:12px; border:none; color:white; font-weight:bold;">LOGIN</button>
+            <button onclick="showReg()" style="background:var(--main); flex:1; padding:12px; border-radius:12px; border:none; color:white; font-weight:bold;">REGISTER</button>
         </div>
         <button id="reg-final" onclick="register()" style="background:var(--main); display:none; padding:12px; border-radius:12px; border:none; color:white; font-weight:bold;">CREATE ACCOUNT</button>
-        <p id="back-btn" onclick="location.reload()" style="font-size:10px; color:#888; text-align:center; display:none; margin-top:10px;">Back to Login</p>
+        <p id="back-btn" onclick="location.reload()" style="font-size:10px; color:#888; text-align:center; display:none; margin-top:10px; cursor:pointer;">Back to Login</p>
     </div>
 </div>
 
@@ -137,10 +144,11 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let audioOK = false;
+    let audioOK = false, isAlertOn = true;
     window.initAudio = () => { if(!audioOK) { const a = document.getElementById('alertSound'); a.play().then(()=>a.pause()); audioOK = true; } };
     window.toggleEye = (id) => { const el = document.getElementById(id); el.type = el.type === "password" ? "text" : "password"; };
-    
+    window.toggleAlert = (v) => { isAlertOn = v; document.getElementById('mute-label').innerText = v ? "ON" : "OFF"; if(!v) stopSiren(); };
+
     window.showReg = () => {
         document.getElementById('reg-fields').style.display = 'block';
         document.getElementById('reg-name').style.display = 'block';
@@ -149,12 +157,12 @@
         document.getElementById('back-btn').style.display = 'block';
     };
 
-    window.login = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert("Login မှားယွင်းနေပါသည်"));
+    window.login = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e => alert("Login Error: အီးမေးလ် သို့မဟုတ် ပတ်စ်ဝပ် မှားနေပါသည်"));
     
     window.register = async () => {
         const p = document.getElementById('pass').value, cp = document.getElementById('conf-pass').value, n = document.getElementById('uname').value;
-        if(!n) return alert("နာမည်ထည့်ပေးပါ");
-        if(p !== cp) return alert("Password မတူညီပါ!");
+        if(!n) return alert("Username ထည့်ပေးပါ");
+        if(p !== cp) return alert("Password များ မတူညီပါ!");
         try {
             const res = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, p);
             await updateProfile(res.user, { displayName: n });
@@ -170,8 +178,8 @@
         if(u) { initMap(); initChat(); }
     });
 
-    let map, uMark, pMarkers = {}, scanRadius = 5, polData = [], isAlertOn = true, tileLayer, autoFollow = true;
-    let timer, hLat, hLng;
+    let map, uMark, pMarkers = {}, scanRadius = 5, polData = [], tileLayer, autoFollow = true;
+    let hTimer, hLat, hLng;
 
     function initMap() {
         if(map) return;
@@ -182,35 +190,36 @@
         map.on('locationfound', (e) => {
             if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-marker'})}).addTo(map); map.setView(e.latlng, 17); }
             else { uMark.setLatLng(e.latlng); if(autoFollow) map.panTo(e.latlng); }
-            checkDanger();
+            checkNearby();
         });
 
         map.on('dragstart', () => toggleFollow(false));
 
+        // 3-Second Holding Report Logic
         map.on('mousedown touchstart', (e) => {
             if(!auth.currentUser) return;
             hLat = e.latlng.lat; hLng = e.latlng.lng;
-            const overlay = document.getElementById('hold-overlay'), ring = document.getElementById('p-ring');
-            overlay.style.display = 'flex'; ring.classList.add('spin'); ring.classList.remove('done');
-            timer = setTimeout(() => {
-                ring.classList.add('done');
+            const overlay = document.getElementById('hold-overlay'), ring = document.getElementById('p-ring'), txt = document.getElementById('p-text');
+            overlay.style.display = 'flex'; ring.classList.add('spin'); ring.classList.remove('done'); txt.innerText = "၃ စက္ကန့်ဖိထားပါ";
+            
+            hTimer = setTimeout(() => {
+                ring.classList.add('done'); txt.innerText = "သတင်းပို့ပြီးပါပြီ!";
                 if(navigator.vibrate) navigator.vibrate(200);
                 addDoc(collection(db, "police_spots"), { lat: hLat, lng: hLng, time: serverTimestamp() });
                 setTimeout(() => { overlay.style.display = 'none'; }, 800);
             }, 3000);
         });
 
-        const cancel = () => { clearTimeout(timer); document.getElementById('hold-overlay').style.display = 'none'; document.getElementById('p-ring').classList.remove('spin'); };
-        map.on('mouseup touchend dragstart', cancel);
-        sync();
+        const cancelH = () => { clearTimeout(hTimer); document.getElementById('hold-overlay').style.display = 'none'; document.getElementById('p-ring').classList.remove('spin'); };
+        map.on('mouseup touchend dragstart zoomstart', cancelH);
+        syncData();
     }
 
-    window.toggleFollow = (v) => { autoFollow = v; document.getElementById('centerBtn').style.background = v ? 'var(--safe)' : 'var(--accent)'; if(v && uMark) map.panTo(uMark.getLatLng()); };
-    window.changeMap = (t) => { if(tileLayer) map.removeLayer(tileLayer); tileLayer = L.tileLayer(`https://{s}.google.com/vt/lyrs=${t}&x={x}&y={y}&z={z}`, { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map); };
-    window.updateRadius = (v) => { scanRadius = v; document.getElementById('range-ui').innerText = v; document.getElementById('radius-val').innerText = v; checkDanger(); };
+    window.toggleFollow = (v) => { autoFollow = v; document.getElementById('centerBtn').classList.toggle('active', v); if(v && uMark) map.panTo(uMark.getLatLng()); };
+    window.updateRadius = (v) => { scanRadius = v; document.getElementById('range-ui').innerText = v; document.getElementById('radius-val').innerText = v; checkNearby(); };
 
-    function sync() {
-        const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+    function syncData() {
+        const cutoff = new Date(Date.now() - 30 * 60 * 1000); // 30 min visibility
         onSnapshot(query(collection(db, "police_spots"), where("time", ">", cutoff), orderBy("time", "desc")), (sn) => {
             polData = [];
             Object.keys(pMarkers).forEach(id => { if(!sn.docs.find(d => d.id === id)) { map.removeLayer(pMarkers[id]); delete pMarkers[id]; } });
@@ -218,11 +227,11 @@
                 const d = doc.data(); polData.push({lat: d.lat, lng: d.lng});
                 if(!pMarkers[doc.id]) pMarkers[doc.id] = L.marker([d.lat, d.lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map);
             });
-            checkDanger();
+            checkNearby();
         });
     }
 
-    function checkDanger() {
+    function checkNearby() {
         if(!uMark || polData.length === 0) { stopSiren(); return; }
         let count = 0;
         polData.forEach(p => { if(map.distance(uMark.getLatLng(), [p.lat, p.lng]) / 1000 <= scanRadius) count++; });
@@ -233,17 +242,12 @@
     function playSiren() { document.getElementById('alertSound').play().catch(()=>{}); }
     function stopSiren() { const s = document.getElementById('alertSound'); s.pause(); s.currentTime = 0; }
 
-    // Chat Logic
+    // Chat Functions
     function initChat() {
-        const q = query(collection(db, "public_chat"), orderBy("time", "desc"), limit(50));
-        onSnapshot(q, (sn) => {
-            const box = document.getElementById('chat-messages');
-            box.innerHTML = "";
-            const msgs = [];
-            sn.forEach(doc => msgs.push(doc.data()));
-            msgs.reverse().forEach(m => {
-                box.innerHTML += `<div class="msg"><span class="msg-user">${m.user}</span>${m.text}</div>`;
-            });
+        onSnapshot(query(collection(db, "public_chat"), orderBy("time", "desc"), limit(50)), (sn) => {
+            const box = document.getElementById('chat-messages'); box.innerHTML = "";
+            let msgs = []; sn.forEach(doc => msgs.push(doc.data()));
+            msgs.reverse().forEach(m => { box.innerHTML += `<div class="msg"><span class="msg-user">${m.user}</span>${m.text}</div>`; });
             box.scrollTop = box.scrollHeight;
         });
     }
@@ -251,11 +255,7 @@
     window.sendChat = async () => {
         const inp = document.getElementById('chat-msg');
         if(!inp.value.trim()) return;
-        await addDoc(collection(db, "public_chat"), {
-            user: auth.currentUser.displayName || "Rider",
-            text: inp.value,
-            time: serverTimestamp()
-        });
+        await addDoc(collection(db, "public_chat"), { user: auth.currentUser.displayName || "Rider", text: inp.value, time: serverTimestamp() });
         inp.value = "";
     };
 </script>
