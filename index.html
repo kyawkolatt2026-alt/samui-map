@@ -3,81 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v4.2</title>
+    <title>Samui Rider Pro v5.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --danger: #ff4757; --accent: #1e90ff; --glass: rgba(18, 18, 18, 0.9); --border: rgba(255,255,255,0.1); }
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #000; overflow: hidden; }
+        :root { --main: #ff4757; --bg: #0f0f0f; --glass: rgba(25, 25, 25, 0.85); --border: rgba(255, 255, 255, 0.1); }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; justify-content: space-between; }
-        .status-pill { background: var(--glass); backdrop-filter: blur(15px); color: white; padding: 12px 20px; border-radius: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-
-        /* Sidebar Update - Scrollable */
-        .sidebar {
-            position: fixed; top: 0; right: -320px; width: 300px; height: 100%;
-            background: var(--glass); backdrop-filter: blur(25px); z-index: 2000;
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-left: 1px solid var(--border);
-            color: white; display: flex; flex-direction: column;
+        /* Modern Top Dashboard */
+        .dashboard {
+            position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000;
+            display: flex; gap: 10px; align-items: center;
         }
-        .sidebar.active { right: 0; }
-        .sidebar-content { padding: 25px; overflow-y: auto; flex-grow: 1; height: 100vh; }
-        
-        .sidebar-toggle { width: 48px; height: 48px; border-radius: 14px; background: var(--glass); color: white; border: 1px solid var(--border); }
+        .status-chip {
+            background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
+            padding: 10px 15px; border-radius: 100px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4); flex-grow: 1;
+        }
+        .live-pulse { width: 8px; height: 8px; background: #2ed573; border-radius: 50%; box-shadow: 0 0 10px #2ed573; animation: pulse-live 1.5s infinite; }
+        @keyframes pulse-live { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
 
-        /* Alert List & Settings */
-        .card { background: rgba(255,255,255,0.06); padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid var(--border); }
-        .alert-item { border-left: 4px solid var(--danger); padding-left: 12px; margin-bottom: 12px; }
-        .switch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        /* Floating Controls */
+        .map-tools {
+            position: fixed; top: 80px; right: 15px; z-index: 1000;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .tool-btn {
+            width: 45px; height: 45px; border-radius: 12px; background: var(--glass);
+            border: 1px solid var(--border); color: white; backdrop-filter: blur(20px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 18px;
+        }
 
-        /* Report FAB */
-        .report-wrap { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; text-align: center; }
-        .report-btn { width: 75px; height: 75px; border-radius: 50%; background: var(--danger); border: none; color: white; font-size: 26px; box-shadow: 0 10px 30px rgba(255, 71, 87, 0.5); position: relative; }
-        .prog-ring { position: absolute; top: -5px; left: -5px; transform: rotate(-90deg); }
+        /* Bottom Sheet UI */
+        .bottom-sheet {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000;
+            background: var(--glass); backdrop-filter: blur(30px);
+            border-radius: 30px 30px 0 0; border-top: 1px solid var(--border);
+            transform: translateY(calc(100% - 100px)); transition: 0.5s cubic-bezier(0, 1, 0.5, 1);
+            padding: 15px 20px 40px 20px; box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        .bottom-sheet.active { transform: translateY(0); }
+        .handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 20px auto; }
 
-        .p-marker { width: 25px; height: 25px; background: var(--danger); border: 3px solid white; border-radius: 50%; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.5; } 100% { transform: scale(1); } }
+        /* List & Settings Items */
+        .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #888; margin-bottom: 12px; display: block; }
+        .log-container { max-height: 250px; overflow-y: auto; margin-bottom: 20px; }
+        .log-item {
+            background: rgba(255,255,255,0.05); padding: 12px 15px; border-radius: 15px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+
+        /* The Ultimate Report Button */
+        .report-button-area { display: flex; justify-content: center; margin-top: 10px; }
+        .hold-btn {
+            width: 80px; height: 80px; border-radius: 50%; background: var(--main);
+            border: none; color: white; font-size: 28px; position: relative;
+            box-shadow: 0 15px 35px rgba(255, 71, 87, 0.4); cursor: pointer;
+        }
+        .progress-svg { position: absolute; top: -5px; left: -5px; transform: rotate(-90deg); }
+
+        /* Marker Styles */
+        .p-marker { width: 26px; height: 26px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 20px var(--main); animation: p-pulse 1.2s infinite; }
+        @keyframes p-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .u-marker { width: 18px; height: 18px; background: #1e90ff; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px #1e90ff; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="status-pill"><div style="width:8px; height:8px; background:#2ecc71; border-radius:50%"></div> <span id="count">0</span> ALERTS NEARBY</div>
-    <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-cog"></i></button>
+<div class="dashboard">
+    <div class="status-chip">
+        <div class="live-pulse"></div>
+        <span style="font-size: 13px; font-weight: 600;">ALERTS: <span id="count" style="color: var(--main);">0</span></span>
+    </div>
+    <div class="status-chip" style="flex-grow: 0;">
+        <i class="fas fa-satellite"></i> <span id="accuracy" style="font-size: 11px;">--</span>
+    </div>
 </div>
 
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-content">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px">
-            <h2 style="margin:0">Control Center</h2>
-            <i class="fas fa-times" onclick="toggleSidebar()" style="font-size:24px"></i>
-        </div>
-
-        <div class="card">
-            <label style="color:#888; font-size:11px; letter-spacing:1px">ALERTS SETTINGS</label>
-            <div class="switch" style="margin-top:15px">
-                <span>Distance Alert (500m)</span>
-                <input type="checkbox" id="distAlert" checked>
-            </div>
-            <button onclick="switchMap()" style="width:100%; padding:10px; border-radius:10px; border:none; background:var(--accent); color:white; margin-top:10px">
-                <i class="fas fa-layer-group"></i> Switch Map View
-            </button>
-        </div>
-
-        <label style="color:#888; font-size:11px; letter-spacing:1px">LIVE LOGS</label>
-        <div id="alertList" style="margin-top:15px"></div>
-    </div>
+<div class="map-tools">
+    <button class="tool-btn" onclick="toggleMap()"><i class="fas fa-layer-group"></i></button>
+    <button class="tool-btn" id="followBtn" onclick="reCenter()" style="color: #1e90ff;"><i class="fas fa-location-arrow"></i></button>
 </div>
 
 <div id="map"></div>
 
-<div class="report-wrap">
-    <div style="color:white; font-size:10px; margin-bottom:5px">HOLD TO REPORT</div>
-    <button class="report-btn" id="reportBtn">
-        <svg width="85" height="85" class="prog-ring"><circle cx="42" cy="42" r="38" stroke="white" stroke-width="4" fill="transparent" stroke-dasharray="240" stroke-dashoffset="240" id="progRing"/></svg>
-        <i class="fas fa-bullhorn"></i>
-    </button>
+<div class="bottom-sheet" id="sheet">
+    <div class="handle" onclick="toggleSheet()"></div>
+    
+    <div class="section-label">Safety Settings</div>
+    <div class="setting-row">
+        <span>Distance Audio Alert</span>
+        <input type="checkbox" id="alertToggle" checked>
+    </div>
+
+    <div class="section-label">Live Logs</div>
+    <div class="log-container" id="logList">
+        <div style="text-align: center; color: #555; padding: 20px;">No alerts nearby</div>
+    </div>
+
+    <div class="report-button-area">
+        <button class="hold-btn" id="holdBtn">
+            <svg width="90" height="90" class="progress-svg"><circle cx="45" cy="45" r="42" stroke="white" stroke-width="4" fill="transparent" stroke-dasharray="264" stroke-dashoffset="264" id="ring" /></svg>
+            <i class="fas fa-bullhorn"></i>
+        </button>
+    </div>
+    <div style="text-align: center; font-size: 10px; color: #888; margin-top: 10px;">HOLD 3S TO REPORT POLICE</div>
 </div>
 
 <script type="module">
@@ -98,57 +130,63 @@
     const spotsRef = collection(db, "police_spots");
 
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.5120, 100.0137], 15);
-    const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
-    const street = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] });
+    const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
+    const googleStreet = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] });
 
-    let isSat = true, isFollow = true, userLoc = null;
+    let isSat = true, isFollow = true, userMarker = null, markers = {};
 
-    window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('active');
-    window.switchMap = () => { if(isSat) { map.removeLayer(sat); street.addTo(map); } else { map.removeLayer(street); sat.addTo(map); } isSat = !isSat; };
+    window.toggleSheet = () => document.getElementById('sheet').classList.toggle('active');
+    window.toggleMap = () => { if(isSat) { map.removeLayer(googleSat); googleStreet.addTo(map); } else { map.removeLayer(googleStreet); googleSat.addTo(map); } isSat = !isSat; };
+    window.reCenter = () => { isFollow = true; document.getElementById('followBtn').style.color = '#1e90ff'; if(userMarker) map.setView(userMarker.getLatLng(), 17); };
 
+    map.on('movestart', (e) => { if(!e.hard) { isFollow = false; document.getElementById('followBtn').style.color = '#fff'; } });
+
+    // GPS Engine
     map.locate({ watch: true, enableHighAccuracy: true });
     map.on('locationfound', (e) => {
-        userLoc = e.latlng;
-        if (isFollow) map.setView(e.latlng, 17);
-        checkDistance(e.latlng);
+        document.getElementById('accuracy').innerText = Math.round(e.accuracy) + 'm';
+        if(!userMarker) {
+            userMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'u-marker' }) }).addTo(map);
+            map.setView(e.latlng, 17);
+        } else { userMarker.setLatLng(e.latlng); }
+        if(isFollow) map.setView(e.latlng, map.getZoom(), { animate: true });
+        
+        // Distance Alert Check
+        if(document.getElementById('alertToggle').checked) {
+            Object.values(markers).forEach(m => {
+                if(e.latlng.distanceTo(m.getLatLng()) < 500) {
+                    if(window.navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                }
+            });
+        }
     });
 
-    // Distance Alert Logic
-    function checkDistance(currentLoc) {
-        if(!document.getElementById('distAlert').checked) return;
-        Object.values(markers).forEach(m => {
-            const dist = currentLoc.distanceTo(m.getLatLng());
-            if(dist < 500) { 
-                if(window.navigator.vibrate) navigator.vibrate(500);
-            }
-        });
-    }
+    // Hold to Report Engine
+    const btn = document.getElementById('holdBtn'), ring = document.getElementById('ring');
+    let timer, progress = 264;
+    function start() { timer = setInterval(() => { progress -= 8.8; ring.style.strokeDashoffset = progress; if(progress <= 0) { clearInterval(timer); fireReport(); reset(); } }, 100); }
+    function reset() { clearInterval(timer); progress = 264; ring.style.strokeDashoffset = 264; }
+    btn.onmousedown = btn.ontouchstart = (e) => { e.preventDefault(); start(); };
+    btn.onmouseup = btn.ontouchend = reset;
 
-    // Long Press Report
-    const btn = document.getElementById('reportBtn'), ring = document.getElementById('progRing');
-    let timer, offset = 240;
-    function start() { timer = setInterval(() => { offset -= 8; ring.style.strokeDashoffset = offset; if(offset<=0) { clearInterval(timer); doReport(); reset(); } }, 100); }
-    function reset() { clearInterval(timer); offset = 240; ring.style.strokeDashoffset = 240; }
-    btn.onmousedown = btn.ontouchstart = start; btn.onmouseup = btn.ontouchend = reset;
-
-    async function doReport() {
+    async function fireReport() {
         navigator.geolocation.getCurrentPosition(async (pos) => {
             await addDoc(spotsRef, { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp() });
-            alert("Police alert reported!");
+            alert("Police report submitted!");
         });
     }
 
-    // Live Sync
-    let markers = {};
+    // Sync Data
     const q = query(spotsRef, where("time", ">", new Date(Date.now() - 2 * 60 * 60 * 1000)), orderBy("time", "desc"));
     onSnapshot(q, (snaps) => {
         document.getElementById('count').innerText = snaps.size;
-        const list = document.getElementById('alertList');
-        list.innerHTML = "";
+        const logList = document.getElementById('logList');
+        logList.innerHTML = "";
+        
         snaps.forEach(doc => {
             const data = doc.data();
-            const timeStr = data.time ? new Date(data.time.toDate()).toLocaleTimeString() : "Just now";
-            list.innerHTML += `<div class="alert-item"><b>Police Spotted</b><br><small>${timeStr}</small></div>`;
+            const time = data.time ? new Date(data.time.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Just now";
+            logList.innerHTML += `<div class="log-item"><span><i class="fas fa-shield-alt" style="color:var(--main)"></i> Police Spotted</span><span style="font-size:12px; color:#666;">${time}</span></div>`;
             if(!markers[doc.id]) markers[doc.id] = L.marker([data.lat, data.lng], { icon: L.divIcon({ className: 'p-marker' }) }).addTo(map);
         });
     });
