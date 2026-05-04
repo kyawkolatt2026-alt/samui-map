@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v8.5</title>
+    <title>Samui Rider Pro v8.6</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -53,9 +53,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // API Key ကို သေသေချာချာ ပြင်ပေးထားပါတယ်
+    // API Key မှန်ကန်ကြောင်း ပြန်စစ်ထားပြီးပါပြီ
     const firebaseConfig = { 
         apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZfzf", 
         authDomain: "samui-alert.firebaseapp.com", 
@@ -70,11 +70,12 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    document.getElementById('loginBtn').onclick = () => signInWithRedirect(auth, provider);
-
-    getRedirectResult(auth).catch((error) => {
-        if(error.code !== "auth/redirect-cancelled-by-user") alert("Error: " + error.message);
-    });
+    // Popup နည်းလမ်းကို အသုံးပြုထားခြင်း (ပိုမြန်စေသည်)
+    document.getElementById('loginBtn').onclick = () => {
+        signInWithPopup(auth, provider).catch((error) => {
+            alert("Login Error: " + error.message);
+        });
+    };
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -113,7 +114,7 @@
         navigator.geolocation.getCurrentPosition(async (pos) => {
             await addDoc(collection(db, "police_spots"), { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp(), user: auth.currentUser.displayName });
             alert("သတင်းပို့ပြီးပါပြီ။");
-        });
+        }, (err) => alert("Location Error: " + err.message));
     }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
