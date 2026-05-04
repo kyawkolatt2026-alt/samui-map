@@ -3,50 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v18.0</title>
+    <title>Samui Rider Pro v18.1</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --main: #ff4757; --bg: #0b0b0d; --card: rgba(20, 20, 22, 0.95); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --safe: #2ed573; }
+        :root { --main: #ff4757; --bg: #0b0b0d; --card: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --safe: #2ed573; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* Long Press Overlay */
+        /* Long Press Progress Overlay */
         #hold-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); pointer-events: none; }
         .p-ring { width: 80px; height: 80px; border: 8px solid rgba(255,255,255,0.1); border-top: 8px solid var(--main); border-radius: 50%; }
         .p-ring.active { animation: spin 3s linear forwards; }
         .p-ring.done { border-color: var(--safe) !important; transition: 0.3s; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Top Bar Info */
+        /* Floating UI */
         .top-info { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; }
         .pill { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 12px; flex: 1; text-align: center; color: white; font-size: 11px; font-weight: bold; backdrop-filter: blur(10px); }
 
-        /* Right Side Buttons */
-        .controls { position: fixed; right: 15px; bottom: 130px; z-index: 1500; display: flex; flex-direction: column; gap: 15px; }
-        .btn { width: 55px; height: 55px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .btn-report { background: var(--main); }
-        .btn-gps { background: var(--accent); }
+        .side-ctrl { position: fixed; right: 15px; bottom: 130px; z-index: 1500; display: flex; flex-direction: column; gap: 15px; }
+        .btn-fab { width: 55px; height: 55px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .btn-blue { background: var(--accent); }
 
-        /* Bottom Sheet UI */
-        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--card); border-radius: 25px 25px 0 0; transform: translateY(calc(100% - 115px)); transition: 0.4s; padding: 15px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; color: white; }
+        /* Bottom Sheet */
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--card); border-radius: 25px 25px 0 0; transform: translateY(calc(100% - 115px)); transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); padding: 15px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; color: white; }
         .sheet.active { transform: translateY(0); }
         .handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
 
-        /* Report List Section */
-        .report-scroller { background: rgba(0,0,0,0.2); border-radius: 15px; padding: 10px; border: 1px solid var(--border); margin-bottom: 10px; max-height: 100px; overflow-y: auto; font-size: 12px; }
-        .report-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        /* Chat Section */
-        .chat-wrap { flex: 1; display: flex; flex-direction: column; background: rgba(255,255,255,0.03); border-radius: 15px; padding: 10px; border: 1px solid var(--border); margin-bottom: 10px; min-height: 180px; }
+        /* Content Sections */
+        .report-list { background: rgba(0,0,0,0.2); border-radius: 15px; padding: 10px; border: 1px solid var(--border); margin-bottom: 10px; max-height: 100px; overflow-y: auto; font-size: 12px; }
+        .chat-area { flex: 1; background: rgba(255,255,255,0.03); border-radius: 15px; border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; margin-bottom: 10px; min-height: 180px; }
         #chat-view { flex: 1; overflow-y: auto; font-size: 13px; margin-bottom: 8px; }
-        .chat-bar { display: flex; gap: 8px; }
-        .chat-bar input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; color: white; outline: none; }
-
-        /* Setting Grid */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); font-size: 11px; }
-        select { width: 100%; background: transparent; color: white; border: none; font-size: 12px; margin-top: 5px; outline: none; }
 
         .p-marker { width: 25px; height: 25px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
@@ -55,8 +46,8 @@
 <body onclick="initAudio()">
 
 <div class="top-info">
-    <div class="pill">🚨 <span id="near-count" style="color:var(--main)">0</span> NEARBY</div>
-    <div class="pill">📏 <span id="dist-ui">5</span> KM</div>
+    <div class="pill">🚨 NEAR: <span id="near-count" style="color:var(--main)">0</span></div>
+    <div class="pill">📏 DIST: <span id="dist-txt">5</span> KM</div>
 </div>
 
 <div id="hold-overlay">
@@ -66,9 +57,8 @@
     </div>
 </div>
 
-<div class="controls">
-    <div class="btn btn-report" onclick="sendQuickReport()"><i class="fas fa-bullhorn"></i></div>
-    <div class="btn btn-gps" id="centerBtn" onclick="toggleFollow(true)"><i class="fas fa-crosshairs"></i></div>
+<div class="side-ctrl">
+    <div class="btn-fab btn-blue" id="centerBtn" onclick="toggleFollow(true)"><i class="fas fa-crosshairs"></i></div>
 </div>
 
 <div id="map"></div>
@@ -77,42 +67,43 @@
     <div class="handle" onclick="this.parentElement.classList.toggle('active')"></div>
     
     <div id="app-ui" style="display:none; flex-direction: column; flex: 1; overflow: hidden;">
-        <div class="report-scroller" id="report-list"></div>
+        <div class="report-list" id="ui-reports"></div>
 
-        <div class="chat-wrap">
+        <div class="chat-area">
             <div id="chat-view"></div>
-            <div class="chat-bar">
-                <input type="text" id="chat-msg" placeholder="စာရိုက်ပါ...">
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="chat-in" placeholder="စာရိုက်ပါ..." style="flex:1; background:rgba(255,255,255,0.1); border:none; border-radius:20px; padding:10px 15px; color:white; outline:none;">
                 <button onclick="sendChat()" style="background:var(--accent); border:none; color:white; border-radius:50%; width:38px; height:38px;"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
-        <div class="grid">
+        <div class="settings-grid">
             <div class="card">
-                <label>Map Style</label>
-                <select onchange="changeMap(this.value)">
+                <label>MAP STYLE</label>
+                <select onchange="changeMap(this.value)" style="width:100%; background:transparent; color:white; border:none; outline:none;">
                     <option value="m">Normal View</option>
                     <option value="s">Satellite View</option>
                     <option value="y">Hybrid View</option>
                 </select>
             </div>
             <div class="card">
-                <label>Distance Control</label>
+                <label>ALARM SOUND</label>
+                <div style="display:flex; justify-content:space-between; margin-top:5px;">
+                    <span id="alarm-st" style="font-size:10px; color:var(--safe);">ON</span>
+                    <input type="checkbox" id="sndCheck" checked onchange="setAlarm(this.checked)">
+                </div>
+            </div>
+            <div class="card" style="grid-column: span 2;">
+                <label>SCANNING RADIUS</label>
                 <input type="range" min="1" max="20" value="5" oninput="updateRadius(this.value)" style="width:100%">
             </div>
-            <div class="card">
-                <label>Alert Sound</label>
-                <input type="checkbox" id="sndToggle" checked onchange="isAlertOn = this.checked; if(!this.checked) stopSiren();">
-            </div>
-            <div class="card" onclick="logout()" style="display:flex; align-items:center; justify-content:center; color:var(--main); font-weight:bold;">
-                LOGOUT
-            </div>
         </div>
+        <button onclick="logout()" style="color:var(--main); background:none; border:none; font-size:10px; margin-top:10px; align-self:center;">LOGOUT</button>
     </div>
 
     <div id="auth-ui" style="display:flex; flex-direction:column; gap:8px;">
-        <h3 style="text-align:center; margin:0 0 10px 0;">Samui Rider Pro</h3>
-        <input type="text" id="reg-user" style="display:none; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Name">
+        <h3 style="text-align:center; margin:0;">Samui Rider Pro</h3>
+        <input type="text" id="reg-name" style="display:none; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Display Name">
         <input type="email" id="email" style="padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Email">
         <input type="password" id="pass" style="padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Password">
         <div id="auth-btns" style="display:flex; gap:10px;">
@@ -137,18 +128,26 @@
 
     let audioOK = false, isAlertOn = true;
     window.initAudio = () => { if(!audioOK) { const a = document.getElementById('alertSound'); a.play().then(()=>a.pause()); audioOK = true; } };
+    
+    // ✅ Alarm အသံ Fix
+    window.setAlarm = (v) => { 
+        isAlertOn = v; 
+        document.getElementById('alarm-st').innerText = v ? "ON" : "OFF";
+        document.getElementById('alarm-st').style.color = v ? 'var(--safe)' : 'var(--main)';
+        if(!v) stopSiren(); 
+    };
 
-    window.showReg = () => { document.getElementById('reg-user').style.display='block'; document.getElementById('auth-btns').style.display='none'; document.getElementById('reg-final').style.display='block'; };
+    window.showReg = () => { document.getElementById('reg-name').style.display='block'; document.getElementById('auth-btns').style.display='none'; document.getElementById('reg-final').style.display='block'; };
     window.login = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(()=>alert("Login Error"));
     window.register = async () => {
-        try { const res = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); await updateProfile(res.user, { displayName: document.getElementById('reg-user').value }); location.reload(); } catch(e) { alert(e.message); }
+        try { const res = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); await updateProfile(res.user, { displayName: document.getElementById('reg-name').value }); location.reload(); } catch(e) { alert(e.message); }
     };
     window.logout = () => signOut(auth).then(() => location.reload());
 
     onAuthStateChanged(auth, (u) => {
         document.getElementById('auth-ui').style.display = u ? 'none' : 'flex';
         document.getElementById('app-ui').style.display = u ? 'flex' : 'none';
-        if(u) { initMap(); initChat(); syncData(); }
+        if(u) { initMap(); initChat(); syncSpots(); }
     });
 
     let map, uMark, pMarkers = {}, scanRadius = 5, polData = [], tileLayer, autoFollow = true, hTimer;
@@ -165,15 +164,23 @@
             checkNearby();
         });
 
-        // ✅ ၃ စက္ကန့်ဖိထားမှ Report တင်မည့်စနစ်
+        // ✅ ၃ စက္ကန့်ဖိထားမှ Report တင်မည့်စနစ် (နေရာတိကျအောင် Fix လုပ်ထားသည်)
         map.on('mousedown touchstart', (e) => {
             if(!auth.currentUser) return;
             const overlay = document.getElementById('hold-overlay'), ring = document.getElementById('p-ring'), txt = document.getElementById('p-text');
+            const targetLatLng = e.latlng; // ဖိလိုက်တဲ့ နေရာအတိအကျကို မှတ်ထားခြင်း
+            
             overlay.style.display = 'flex'; ring.classList.add('active'); ring.classList.remove('done'); txt.innerText = "၃ စက္ကန့်ဖိထားပါ";
+            
             hTimer = setTimeout(() => {
                 ring.classList.add('done'); txt.innerText = "သတင်းပို့ပြီးပါပြီ!";
                 if(navigator.vibrate) navigator.vibrate([150, 50, 150]);
-                addDoc(collection(db, "police_spots"), { lat: e.latlng.lat, lng: e.latlng.lng, time: serverTimestamp(), user: auth.currentUser.displayName || "Rider" });
+                addDoc(collection(db, "police_spots"), { 
+                    lat: targetLatLng.lat, 
+                    lng: targetLatLng.lng, 
+                    time: serverTimestamp(), 
+                    user: auth.currentUser.displayName || "Rider" 
+                });
                 setTimeout(() => { overlay.style.display = 'none'; ring.classList.remove('active'); }, 800);
             }, 3000);
         });
@@ -183,25 +190,19 @@
 
     window.changeMap = (t) => { if(tileLayer) map.removeLayer(tileLayer); tileLayer = L.tileLayer(`https://{s}.google.com/vt/lyrs=${t}&x={x}&y={y}&z={z}`, { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map); };
     window.toggleFollow = (v) => { autoFollow = v; document.getElementById('centerBtn').style.background = v ? 'var(--safe)' : 'var(--accent)'; if(v && uMark) map.panTo(uMark.getLatLng()); };
-    window.updateRadius = (v) => { scanRadius = v; document.getElementById('dist-ui').innerText = v; checkNearby(); };
+    window.updateRadius = (v) => { scanRadius = v; document.getElementById('dist-txt').innerText = v; checkNearby(); };
 
-    window.sendQuickReport = () => {
-        if(!uMark) return;
-        addDoc(collection(db, "police_spots"), { lat: uMark.getLatLng().lat, lng: uMark.getLatLng().lng, time: serverTimestamp(), user: auth.currentUser.displayName || "Rider" });
-        if(navigator.vibrate) navigator.vibrate(100);
-        alert("လက်ရှိနေရာကို သတင်းပို့ပြီးပါပြီ");
-    };
-
-    function syncData() {
+    function syncSpots() {
+        // ✅ အဟောင်းတွေဖျက်ရန် Cutoff (မိနစ် ၄၀ ထက်ကျော်ရင် မပြပါ)
         const cutoff = new Date(Date.now() - 40 * 60 * 1000);
         onSnapshot(query(collection(db, "police_spots"), where("time", ">", cutoff), orderBy("time", "desc")), (sn) => {
             polData = [];
-            const listUI = document.getElementById('report-list'); listUI.innerHTML = "";
+            const listUI = document.getElementById('ui-reports'); listUI.innerHTML = "";
             Object.keys(pMarkers).forEach(id => { if(!sn.docs.find(d => d.id === id)) { map.removeLayer(pMarkers[id]); delete pMarkers[id]; } });
             sn.forEach(doc => {
                 const d = doc.data(); polData.push({lat: d.lat, lng: d.lng});
                 const t = d.time ? d.time.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
-                listUI.innerHTML += `<div class="report-item"><span>⚠️ Spot (${d.user || 'Rider'})</span> <b>${t}</b></div>`;
+                listUI.innerHTML += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);"><span>⚠️ Spot (${d.user})</span> <b>${t}</b></div>`;
                 if(!pMarkers[doc.id]) pMarkers[doc.id] = L.marker([d.lat, d.lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map);
             });
             checkNearby();
@@ -228,7 +229,7 @@
     }
 
     window.sendChat = async () => {
-        const inp = document.getElementById('chat-msg'); if(!inp.value.trim()) return;
+        const inp = document.getElementById('chat-in'); if(!inp.value.trim()) return;
         await addDoc(collection(db, "public_chat"), { user: auth.currentUser.displayName || "Rider", text: inp.value, time: serverTimestamp() });
         inp.value = "";
     };
