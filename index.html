@@ -12,18 +12,18 @@
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: #ff4757; color: white; border: none; 
             padding: 15px 30px; border-radius: 50px; font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); width: 220px;
         }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
-<button class="report-btn" onclick="reportNow()">🚨 ဒီနေရာမှာ ဖမ်းနေတယ်</button>
+<button id="btn" class="report-btn" onclick="reportNow()">🚨 ဒီနေရာမှာ ဖမ်းနေတယ်</button>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk",
@@ -43,41 +43,42 @@
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
   let activeMarkers = {};
+  let alertedSpots = new Set(); // အသံခဏခဏ မမြည်အောင် လုပ်ရန်
 
   // ၂ နာရီအတွင်းက Pin တွေကိုပဲ ပြမယ်
-  function updateView() {
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const q = query(spotsRef, where("time", ">", twoHoursAgo));
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  const q = query(spotsRef, where("time", ">", twoHoursAgo));
 
-    onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data();
-        const id = change.doc.id;
+  onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const data = change.doc.data();
+      const id = change.doc.id;
 
-        if (change.type === "added") {
-          const marker = L.marker([data.lat, data.lng]).addTo(map).bindPopup("🚨 ရဲဖမ်းနေသည်");
-          activeMarkers[id] = marker;
-          checkDistance(data.lat, data.lng);
+      if (change.type === "added") {
+        const marker = L.marker([data.lat, data.lng]).addTo(map).bindPopup("🚨 ရဲဖမ်းနေသည်");
+        activeMarkers[id] = marker;
+        
+        // အကွာအဝေးစစ်မယ်
+        checkDistance(data.lat, data.lng, id);
+      }
+      if (change.type === "removed") {
+        if (activeMarkers[id]) {
+          map.removeLayer(activeMarkers[id]);
+          delete activeMarkers[id];
         }
-        if (change.type === "removed") {
-          if (activeMarkers[id]) {
-            map.removeLayer(activeMarkers[id]);
-            delete activeMarkers[id];
-          }
-        }
-      });
+      }
     });
-  }
+  });
 
-  // အကွာအဝေးစစ်ပြီး အသံနဲ့ သတိပေးခြင်း
-  function checkDistance(lat, lng) {
-    if (navigator.geolocation) {
+  function checkDistance(lat, lng, id) {
+    if (navigator.geolocation && !alertedSpots.has(id)) {
       navigator.geolocation.getCurrentPosition((pos) => {
         const dist = getDistance(pos.coords.latitude, pos.coords.longitude, lat, lng);
-        if (dist < 0.5) { // ၅၀၀ မီတာအတွင်း
+        if (dist < 0.5) { 
           const msg = new SpeechSynthesisUtterance("သတိပြုရန် ရှေ့တွင် ရဲဖမ်းနေပါသည်");
           msg.lang = 'my-MM';
           window.speechSynthesis.speak(msg);
+          alertedSpots.add(id); // ဒီနေရာအတွက် အသံတစ်ခါပဲ မြည်စေရန်
         }
       });
     }
@@ -92,17 +93,29 @@
   }
 
   window.reportNow = function() {
+    const btn = document.getElementById('btn');
+    btn.disabled = true;
+    btn.innerText = "တင်နေသည်...";
+
     navigator.geolocation.getCurrentPosition(async (pos) => {
       await addDoc(spotsRef, {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         time: serverTimestamp()
       });
-      alert("တင်ပြီးပါပြီ!");
+      btn.innerText = "တင်ပြီးပါပြီ ✅";
+      btn.style.background = "#2ed573";
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerText = "🚨 ဒီနေရာမှာ ဖမ်းနေတယ်";
+        btn.style.background = "#ff4757";
+      }, 3000);
+    }, (err) => {
+      btn.disabled = false;
+      btn.innerText = "🚨 Error တက်နေသည်";
     });
   };
 
-  updateView();
   map.locate({setView: true, watch: true, maxZoom: 16});
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
