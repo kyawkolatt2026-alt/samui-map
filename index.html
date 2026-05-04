@@ -3,30 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v9.2</title>
+    <title>Samui Rider Pro v9.3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --main: #ff4757; --bg: #0b0b0d; --glass: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-        
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px; }
-        .chip { background: var(--glass); border: 1px solid var(--border); padding: 12px; border-radius: 20px; flex: 1; text-align: center; font-size: 12px; backdrop-filter: blur(10px); font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-
+        .chip { background: var(--glass); border: 1px solid var(--border); padding: 12px; border-radius: 20px; flex: 1; text-align: center; font-size: 12px; backdrop-filter: blur(10px); font-weight: bold; }
         .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); }
         .sheet.active { transform: translateY(0); }
         .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
-
-        .login-box { display: flex; flex-direction: column; gap: 12px; padding: 10px 0; }
-        input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 14px; border-radius: 15px; color: white; font-size: 14px; outline: none; }
-        .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 15px; font-weight: bold; cursor: pointer; font-size: 15px; }
-        
+        .login-box { display: flex; flex-direction: column; gap: 12px; }
+        input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 14px; border-radius: 15px; color: white; outline: none; }
+        .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 15px; font-weight: bold; cursor: pointer; }
         .report-btn { width: 85px; height: 85px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 30px; margin: 15px auto; display: block; box-shadow: 0 8px 25px rgba(255,71,87,0.4); }
         .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
         .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); }
-        
-        #status-text { font-size: 13px; margin-bottom: 10px; color: #aaa; text-align: center; }
     </style>
 </head>
 <body>
@@ -40,22 +34,18 @@
 
 <div class="sheet" id="sheet">
     <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
-    
     <div id="logged-in-ui" style="display:none; text-align:center;">
-        <div id="status-text">စောင့်ကြည့်သူအဖြစ် ချိတ်ဆက်ထားပြီးပါပြီ</div>
+        <p style="color:var(--accent); font-size: 14px; margin-bottom: 5px;">Connected as Observer</p>
         <button class="report-btn" id="holdBtn"><i class="fas fa-bullhorn"></i></button>
-        <p style="font-size:12px; color:#888;">အချက်ပေးရန် ၃ စက္ကန့် ဖိထားပါ</p>
+        <p style="font-size:12px; color:#888;">သတင်းပို့ရန် ၃ စက္ကန့် ဖိထားပါ</p>
         <button onclick="auth.signOut()" style="background:none; color:#444; border:none; margin-top:15px; font-size:11px;">LOGOUT</button>
     </div>
-
-    <div id="login-prompter">
-        <div class="login-box">
-            <h3 style="text-align:center; margin:0 0 10px 0; font-size:18px;">Access Portal</h3>
-            <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="pass" placeholder="Password">
-            <button class="btn" onclick="handleAuth()">LOGIN / REGISTER</button>
-            <p style="font-size:11px; color:#555; text-align:center; line-height:1.4;">အကောင့်မရှိသေးပါက Email နှင့် Password အသစ်ရိုက်ထည့်ပြီး Login နှိပ်ရုံဖြင့် အကောင့်ပွင့်သွားပါမည်။</p>
-        </div>
+    <div id="login-prompter" class="login-box">
+        <h3 style="text-align:center; margin:0 0 10px 0;">Access Portal</h3>
+        <input type="email" id="email" placeholder="Email Address">
+        <input type="password" id="pass" placeholder="Password (Min 6 digits)">
+        <button class="btn" onclick="handleAuth()">LOGIN / REGISTER</button>
+        <p style="font-size:11px; color:#555; text-align:center; line-height:1.4;">Email နှင့် Password အသစ်ရိုက်ထည့်ပြီး Login နှိပ်ရုံဖြင့် အကောင့်ပွင့်သွားပါမည်။</p>
     </div>
 </div>
 
@@ -64,26 +54,24 @@
     import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // 9757.jpg ထဲက API Key အမှန်ကို သုံးထားပါတယ်
+    // API Key ကို ပုံ 9757 ပါအတိုင်း "f" နဲ့ပဲ အဆုံးသတ်ထားပါတယ်
     const firebaseConfig = { 
-        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZfzk", 
+        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZfzf", 
         authDomain: "samui-alert.firebaseapp.com", 
         projectId: "samui-alert", 
         storageBucket: "samui-alert.firebasestorage.app", 
         messagingSenderId: "713193724813", 
-        appId: "1:713193724813:web:85831c39e3560eb310bbc4",
-        measurementId: "G-DG7PRMKLN1"
+        appId: "1:713193724813:web:85831c39e3560eb310bbc4"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     window.auth = getAuth(app);
 
-    // Login နဲ့ Register ကို တစ်ခါတည်း အလုပ်လုပ်အောင် လုပ်ထားပေးပါတယ်
     window.handleAuth = () => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
-        if(!email || pass.length < 6) return alert("Email မှန်ကန်စွာဖြည့်ပြီး Password အနည်းဆုံး ၆ လုံး ထည့်ပေးပါ");
+        if(!email || pass.length < 6) return alert("Email နဲ့ Password (အနည်းဆုံး ၆ လုံး) ထည့်ပေးပါ");
 
         signInWithEmailAndPassword(auth, email, pass).catch(() => {
             createUserWithEmailAndPassword(auth, email, pass).catch(e => alert("Error: " + e.message));
@@ -101,71 +89,36 @@
         }
     });
 
-    // မြေပုံတည်ဆောက်ခြင်း
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.512, 100.013], 15);
     L.tileLayer('https://{s}.google.com/vt/lyrs=m,h&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
 
     let uMark = null, markers = {};
     map.locate({ watch: true, enableHighAccuracy: true });
     map.on('locationfound', (e) => {
-        if(!uMark) { 
-            uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-marker'})}).addTo(map); 
-            map.setView(e.latlng, 16); 
-        } else {
-            uMark.setLatLng(e.latlng);
-        }
+        if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-marker'})}).addTo(map); map.setView(e.latlng, 16); }
+        else uMark.setLatLng(e.latlng);
     });
 
-    // မိနစ် ၂၀ အတွင်းက သတင်းများကို မြေပုံပေါ်မှာ ပြသခြင်း
     function loadData() {
         const limitTime = new Date(Date.now() - 20 * 60 * 1000);
         onSnapshot(query(collection(db, "police_spots"), where("time", ">", limitTime)), (sn) => {
             document.getElementById('count').innerText = sn.size;
-            sn.forEach(d => {
-                if(!markers[d.id]) {
-                    markers[d.id] = L.marker([d.data().lat, d.data().lng], {
-                        icon: L.divIcon({className:'p-marker'})
-                    }).addTo(map);
-                }
-            });
+            sn.forEach(d => { if(!markers[d.id]) markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map); });
         });
     }
 
-    // Long Press (ဖိထားလျှင် သတင်းပို့သည့်စနစ်)
     const hBtn = document.getElementById('holdBtn');
     let hTimer, hCount = 0;
-    const startH = (e) => { 
-        e.preventDefault(); 
-        hBtn.style.transform = "scale(0.9)";
-        hTimer = setInterval(() => { 
-            hCount++; 
-            if(hCount >= 30){ 
-                clearInterval(hTimer); 
-                fire(); 
-                hCount = 0; 
-                hBtn.style.transform = "scale(1)";
-            } 
-        }, 100); 
-    };
-    const stopH = () => { clearInterval(hTimer); hCount = 0; hBtn.style.transform = "scale(1)"; };
-
+    const startH = (e) => { e.preventDefault(); hTimer = setInterval(() => { hCount++; if(hCount >= 30){ clearInterval(hTimer); fire(); hCount = 0; } }, 100); };
+    const stopH = () => { clearInterval(hTimer); hCount = 0; };
     hBtn.addEventListener('touchstart', startH); hBtn.addEventListener('touchend', stopH);
     hBtn.addEventListener('mousedown', startH); hBtn.addEventListener('mouseup', stopH);
 
     async function fire() {
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            try {
-                await addDoc(collection(db, "police_spots"), { 
-                    lat: pos.coords.latitude, 
-                    lng: pos.coords.longitude, 
-                    time: serverTimestamp(), 
-                    user: auth.currentUser.email 
-                });
-                alert("သတင်းပေးပို့မှု အောင်မြင်ပါသည်။");
-            } catch (e) {
-                alert("သတင်းပို့ရန် Database ခွင့်ပြုချက်မရှိပါ။ (Firestore Rules စစ်ပေးပါ)");
-            }
-        }, (err) => alert("Location ခွင့်ပြုချက် ပေးထားရန် လိုအပ်ပါသည်။"));
+            await addDoc(collection(db, "police_spots"), { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp(), user: auth.currentUser.email });
+            alert("သတင်းပို့ပြီးပါပြီ။");
+        });
     }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
