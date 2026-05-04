@@ -3,66 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v3.1</title>
+    <title>Samui Rider Pro v3.2</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #ff4757; --accent: #1e90ff; --dark: #121212; }
-        body { margin: 0; padding: 0; font-family: sans-serif; background: #000; }
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        .settings-panel {
-            position: fixed; top: 15px; right: 15px; z-index: 1000;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-            padding: 10px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1);
+        /* အပေါ်က အခြေအနေပြဘား */
+        .status-bar {
+            position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center;
         }
+        .info-card {
+            background: rgba(0,0,0,0.85); color: white; padding: 10px 15px;
+            border-radius: 12px; border-left: 4px solid var(--primary);
+            backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .count-badge { background: var(--primary); padding: 2px 8px; border-radius: 5px; margin-left: 5px; font-weight: bold; }
+
+        /* Settings Buttons */
+        .controls { display: flex; flex-direction: column; gap: 10px; }
         .btn-round {
-            background: #333; color: white; border: none; width: 40px; height: 40px;
-            border-radius: 10px; margin: 5px; cursor: pointer; display: block;
+            background: rgba(0,0,0,0.85); color: white; border: 1px solid rgba(255,255,255,0.1); 
+            width: 45px; height: 45px; border-radius: 12px; cursor: pointer; backdrop-filter: blur(10px);
         }
 
-        .speedometer {
-            position: fixed; top: 15px; left: 15px; z-index: 1000;
-            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px;
-            border-radius: 15px; border-left: 4px solid var(--accent);
-        }
-
+        /* Marker Styles */
         .police-marker {
-            width: 22px; height: 22px; background: var(--primary);
+            width: 24px; height: 24px; background: var(--primary);
             border: 3px solid white; border-radius: 50%;
-            box-shadow: 0 0 15px var(--primary);
-            animation: pulse-red 1.2s infinite;
+            box-shadow: 0 0 20px var(--primary);
+            animation: pulse-red 1s infinite;
         }
         @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
-            70% { box-shadow: 0 0 0 20px rgba(255, 71, 87, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+            0% { transform: scale(1); opacity: 1; }
+            70% { transform: scale(1.3); opacity: 0.5; box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+            100% { transform: scale(1); opacity: 1; }
         }
+        .user-loc { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--accent); }
 
-        .user-loc {
-            width: 18px; height: 18px; background: var(--accent);
-            border: 3px solid white; border-radius: 50%;
-            box-shadow: 0 0 15px var(--accent);
-        }
-
+        /* Report Button */
         .report-btn { 
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: var(--primary); color: white; border: none; 
             padding: 18px 40px; border-radius: 50px; font-weight: bold; font-size: 18px;
-            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.5);
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.5); width: 85%;
         }
     </style>
 </head>
 <body>
 
-<div class="speedometer">
-    <div style="font-size: 10px; color: #888;">GPS TRACKING</div>
-    <div id="status" style="font-size: 14px; font-weight: bold;">ရှာဖွေနေသည်...</div>
-</div>
-
-<div class="settings-panel">
-    <button class="btn-round" onclick="toggleMap()"><i class="fas fa-layer-group"></i></button>
-    <button class="btn-round" onclick="toggleFollow()" id="followBtn" style="color: var(--accent)"><i class="fas fa-location-arrow"></i></button>
+<div class="status-bar">
+    <div class="info-card">
+        <i class="fas fa-map-marker-alt"></i> လက်ရှိဖမ်းနေဆဲ: <span class="count-badge" id="count">0</span> နေရာ
+    </div>
+    <div class="controls">
+        <button class="btn-round" onclick="toggleMap()"><i class="fas fa-layer-group"></i></button>
+        <button class="btn-round" onclick="toggleFollow()" id="followBtn" style="color: var(--accent)"><i class="fas fa-location-arrow"></i></button>
+    </div>
 </div>
 
 <div id="map"></div>
@@ -88,6 +88,7 @@
     const db = getFirestore(app);
     const spotsRef = collection(db, "police_spots");
 
+    // Map Setup (setView ကို false ထားမယ် - လက်နဲ့ရွှေ့တာ အဆင်ပြေအောင်)
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.5120, 100.0137], 15);
     let satellite = L.tileLayer('http://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
     let street = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] });
@@ -96,9 +97,8 @@
     let isFollow = true;
     let userMarker = null;
 
-    // မြေပုံကို လက်နဲ့ရွှေ့လိုက်ရင် Auto-Follow ကို ခေတ္တပိတ်မယ်
-    map.on('movestart', (e) => {
-        if (e.hard) return; // Code က ရွှေ့တာဆိုရင် ဘာမှမလုပ်ဘူး
+    // လက်နဲ့ထိရင် Auto-Follow ပိတ်မယ်
+    map.on('touchstart mousedown', () => {
         isFollow = false;
         document.getElementById('followBtn').style.color = '#fff';
     });
@@ -110,38 +110,42 @@
     };
 
     window.toggleFollow = () => {
-        isFollow = !isFollow;
-        document.getElementById('followBtn').style.color = isFollow ? '#1e90ff' : '#fff';
-        if(isFollow && userMarker) map.panTo(userMarker.getLatLng());
+        isFollow = true;
+        document.getElementById('followBtn').style.color = var(--accent);
+        if(userMarker) map.setView(userMarker.getLatLng(), 16);
     };
 
-    map.locate({ setView: true, watch: true, enableHighAccuracy: true });
+    // GPS Tracking
+    map.locate({ watch: true, enableHighAccuracy: true });
 
     map.on('locationfound', (e) => {
         if (userMarker) {
             userMarker.setLatLng(e.latlng);
         } else {
             userMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'user-loc' }) }).addTo(map);
+            map.setView(e.latlng, 16);
         }
-        
         if (isFollow) {
-            map.panTo(e.latlng, { animate: true });
+            map.setView(e.latlng, map.getZoom(), { animate: true });
         }
-        document.getElementById('status').innerText = "ချိတ်ဆက်ပြီးပြီ ✅";
     });
 
-    const q = query(spotsRef, where("time", ">", new Date(Date.now() - 2 * 60 * 60 * 1000)));
+    // ဒေတာအရေအတွက်ပြရန်
     let markers = {};
+    const q = query(spotsRef, where("time", ">", new Date(Date.now() - 2 * 60 * 60 * 1000)));
 
     onSnapshot(q, (snaps) => {
+        document.getElementById('count').innerText = snaps.size; // အရေအတွက်ပြမယ်
+        
         snaps.docChanges().forEach(change => {
             const data = change.doc.data();
             if (change.type === "added") {
-                const icon = L.divIcon({ className: 'police-marker', iconSize: [22, 22] });
+                const icon = L.divIcon({ className: 'police-marker', iconSize: [24, 24] });
                 markers[change.doc.id] = L.marker([data.lat, data.lng], { icon: icon }).addTo(map);
             }
             if (change.type === "removed") {
                 map.removeLayer(markers[change.doc.id]);
+                delete markers[change.doc.id];
             }
         });
     });
@@ -149,7 +153,6 @@
     window.reportNow = () => {
         navigator.geolocation.getCurrentPosition(async (pos) => {
             await addDoc(spotsRef, { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp() });
-            alert("အောင်မြင်စွာ တင်ပြီးပါပြီ!");
         });
     };
 </script>
