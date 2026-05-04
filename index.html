@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samui Safe Route - ရဲဖမ်းနေရာပြမြေပုံ</title>
+    <title>Samui Safe Route Pro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Pyidaungsu', sans-serif; }
+        body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { height: 100vh; width: 100%; }
         .report-btn { 
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 1000; background: #ff4757; color: white; border: none; 
-            padding: 15px 30px; border-radius: 50px; font-weight: bold; font-size: 16px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4); cursor: pointer;
+            padding: 15px 30px; border-radius: 50px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
-        .report-btn:active { background: #ff6b81; }
     </style>
 </head>
 <body>
@@ -26,7 +25,6 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // သင်ပေးထားသော Config Code
   const firebaseConfig = {
     apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk",
     authDomain: "samui-alert.firebaseapp.com",
@@ -41,43 +39,66 @@
   const db = getFirestore(app);
   const spotsRef = collection(db, "police_spots");
 
-  // မြေပုံကို Koh Samui ပေါ်မှာ စတင်ပြသခြင်း
-  var map = L.map('map').setView([9.5120, 100.0137], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
+  var map = L.map('map').setView([9.5120, 100.0137], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  // Database က နေရာများကို Real-time ဖတ်ပြီး Marker ချပြခြင်း
+  let activeSpots = [];
+
+  // Database က ဒေတာတွေကို ဖတ်မယ်
   onSnapshot(query(spotsRef), (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === "added") {
-        const d = change.doc.data();
-        L.marker([d.lat, d.lng]).addTo(map)
-          .bindPopup("🚨 ရဲဖမ်းနေသည် <br> အချိန်: " + new Date(d.time?.toDate()).toLocaleTimeString());
-      }
+    activeSpots = [];
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        activeSpots.push(data);
+        L.marker([data.lat, data.lng]).addTo(map).bindPopup("🚨 ရဲဖမ်းနေသည်");
     });
   });
 
-  // လက်ရှိနေရာကို Database သို့ပို့ရန်
+  // အကွာအဝေးတွက်ချက်ရန် Function (Haversine Formula)
+  function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth Radius in KM
+    const dLat = (lat2-lat1) * Math.PI / 180;
+    const dLon = (lon2-lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; 
+  }
+
+  // အသံနဲ့သတိပေးရန်
+  function speakAlert() {
+    const msg = new SpeechSynthesisUtterance("သတိပြုရန် ရှေ့တွင် ရဲဖမ်းနေပါသည်");
+    msg.lang = 'my-MM'; // မြန်မာဘာသာ (ဖုန်းထဲမှာ မြန်မာ Voice ရှိရင် ပိုကောင်းပါတယ်)
+    window.speechSynthesis.speak(msg);
+    if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+  }
+
+  // User ရဲ့ နေရာကို အမြဲကြည့်နေမယ်
+  map.locate({setView: true, watch: true, maxZoom: 16});
+
+  map.on('locationfound', (e) => {
+    const uLat = e.latlng.lat;
+    const uLng = e.latlng.lng;
+
+    activeSpots.forEach(spot => {
+        const distance = getDistance(uLat, uLng, spot.lat, spot.lng);
+        if (distance < 0.5) { // ၅၀၀ မီတာအတွင်းရောက်လျှင်
+            speakAlert();
+        }
+    });
+  });
+
   window.reportNow = function() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
         await addDoc(spotsRef, {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          time: serverTimestamp()
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            time: serverTimestamp()
         });
-        alert("တင်ပြီးပါပြီ! အားလုံးကို အသိပေးလိုက်ပါတယ်။");
-      }, (err) => {
-        alert("တည်နေရာ (Location) ကို ခွင့်ပြုပေးဖို့ လိုအပ်ပါတယ်။");
-      });
-    }
+        alert("တင်ပြီးပါပြီ!");
+    });
   };
-
-  // User ရဲ့ လက်ရှိနေရာကို ပြခြင်း
-  map.locate({setView: true, maxZoom: 15});
 </script>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
