@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v9.3</title>
+    <title>Samui Rider Pro v9.5</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -19,14 +19,14 @@
         input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 14px; border-radius: 15px; color: white; outline: none; }
         .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 15px; font-weight: bold; cursor: pointer; }
         .report-btn { width: 85px; height: 85px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 30px; margin: 15px auto; display: block; box-shadow: 0 8px 25px rgba(255,71,87,0.4); }
-        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
-        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); }
+        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; }
+        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="chip">Active Spots: <span id="count" style="color:var(--main)">0</span></div>
+    <div class="chip">Active: <span id="count" style="color:var(--main)">0</span></div>
     <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">CONTROL PANEL</div>
 </div>
 
@@ -35,7 +35,6 @@
 <div class="sheet" id="sheet">
     <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
     <div id="logged-in-ui" style="display:none; text-align:center;">
-        <p style="color:var(--accent); font-size: 14px; margin-bottom: 5px;">Connected as Observer</p>
         <button class="report-btn" id="holdBtn"><i class="fas fa-bullhorn"></i></button>
         <p style="font-size:12px; color:#888;">သတင်းပို့ရန် ၃ စက္ကန့် ဖိထားပါ</p>
         <button onclick="auth.signOut()" style="background:none; color:#444; border:none; margin-top:15px; font-size:11px;">LOGOUT</button>
@@ -43,9 +42,8 @@
     <div id="login-prompter" class="login-box">
         <h3 style="text-align:center; margin:0 0 10px 0;">Access Portal</h3>
         <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="pass" placeholder="Password (Min 6 digits)">
+        <input type="password" id="pass" placeholder="Password (Min 6 chars)">
         <button class="btn" onclick="handleAuth()">LOGIN / REGISTER</button>
-        <p style="font-size:11px; color:#555; text-align:center; line-height:1.4;">Email နှင့် Password အသစ်ရိုက်ထည့်ပြီး Login နှိပ်ရုံဖြင့် အကောင့်ပွင့်သွားပါမည်။</p>
     </div>
 </div>
 
@@ -54,9 +52,9 @@
     import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // API Key ကို ပုံ 9757 ပါအတိုင်း "f" နဲ့ပဲ အဆုံးသတ်ထားပါတယ်
+    // သင်ပေးထားတဲ့ Key အမှန် "k" နဲ့ ဆုံးတာကို ထည့်သွင်းထားပါတယ်
     const firebaseConfig = { 
-        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZfzf", 
+        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk", 
         authDomain: "samui-alert.firebaseapp.com", 
         projectId: "samui-alert", 
         storageBucket: "samui-alert.firebasestorage.app", 
@@ -71,10 +69,12 @@
     window.handleAuth = () => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
-        if(!email || pass.length < 6) return alert("Email နဲ့ Password (အနည်းဆုံး ၆ လုံး) ထည့်ပေးပါ");
+        if(!email || pass.length < 6) return alert("Email နှင့် Password (၆ လုံး) ထည့်ပါ");
 
         signInWithEmailAndPassword(auth, email, pass).catch(() => {
-            createUserWithEmailAndPassword(auth, email, pass).catch(e => alert("Error: " + e.message));
+            createUserWithEmailAndPassword(auth, email, pass).catch(e => {
+                alert("Login Error: " + e.message);
+            });
         });
     };
 
