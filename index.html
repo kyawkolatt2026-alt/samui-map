@@ -3,65 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v7.4</title>
+    <title>Samui Rider Pro v7.5</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --main: #ff4757; --bg: #0b0b0d; --glass: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --warning: #f1c40f; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-        #auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .login-btn { background: white; color: black; padding: 15px 30px; border-radius: 30px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .update-note { background: rgba(241, 196, 15, 0.2); border: 1.5px solid var(--warning); color: var(--warning); font-size: 11px; padding: 8px; text-align: center; border-radius: 12px; }
-        .chip { background: var(--glass); border: 1px solid var(--border); padding: 10px; border-radius: 20px; flex: 1; text-align: center; font-size: 11px; }
-        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); }
+        .update-note { background: rgba(241, 196, 15, 0.2); border: 1.5px solid var(--warning); color: var(--warning); font-size: 11px; padding: 8px; text-align: center; border-radius: 12px; text-shadow: 1px 1px 2px #000; }
+        .chip-row { display: flex; gap: 10px; }
+        .chip { background: var(--glass); border: 1px solid var(--border); padding: 10px; border-radius: 20px; flex: 1; text-align: center; font-size: 11px; backdrop-filter: blur(10px); }
+
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); }
         .sheet.active { transform: translateY(0); }
+        .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
+
         .tab-bar { display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 15px; margin-bottom: 15px; }
         .tab-item { flex: 1; text-align: center; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 12px; color: #888; }
         .tab-item.active { background: var(--accent); color: white; }
-        #chat-container { display: none; height: 280px; flex-direction: column; }
+
+        /* Inside UI Login */
+        .login-box-inside { background: rgba(255,255,255,0.05); border-radius: 20px; padding: 30px 20px; text-align: center; border: 1px dashed var(--border); }
+        .login-btn-small { background: white; color: black; padding: 12px 20px; border-radius: 25px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; margin-top: 15px; font-size: 14px; }
+
+        #chat-container { display: none; height: 300px; flex-direction: column; }
         #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; }
         .chat-msg { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 15px; font-size: 13px; }
         .chat-msg b { color: var(--accent); font-size: 10px; display: block; }
-        .report-btn { width: 70px; height: 70px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 24px; margin: 10px auto; display: block; }
-        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; }
-        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; }
+        
+        .report-btn { width: 75px; height: 75px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 26px; margin: 10px auto; display: block; box-shadow: 0 0 20px rgba(255,71,87,0.4); }
+        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
+        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--main); }
     </style>
 </head>
 <body>
 
-<div id="auth-overlay">
-    <h2 style="color:var(--main)">SAMUI RIDER PRO</h2>
-    <p style="color:#888; font-size:12px; margin-bottom:30px;">Community အကောင့်ဖြင့်ဝင်ပါ</p>
-    <button class="login-btn" id="loginBtn"><i class="fab fa-google"></i> Google နှင့်ဝင်ရန်</button>
-</div>
-
 <div class="header">
     <div class="update-note">🚨 ၂ ရက်အတွင်း Chat များနှင့် ၂၀ မိနစ်အတွင်း သတင်းများ</div>
-    <div style="display:flex; gap:10px;">
-        <div class="chip">Active: <span id="count" style="color:var(--main)">0</span></div>
-        <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">Menu</div>
+    <div class="chip-row">
+        <div class="chip">Active Reports: <span id="count" style="color:var(--main); font-weight:bold;">0</span></div>
+        <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')"><i class="fas fa-bars"></i> Menu</div>
     </div>
 </div>
 
 <div id="map"></div>
 
 <div class="sheet" id="sheet">
-    <div class="tab-bar">
-        <div class="tab-item active" id="t1" onclick="tab('settings')">Settings</div>
-        <div class="tab-item" id="t2" onclick="tab('chat')">Chat Box</div>
-    </div>
-    <div id="settings-area">
-        <button class="report-btn" id="holdBtn"><i class="fas fa-shield-alt"></i></button>
-        <p style="text-align:center; font-size:12px;">သတင်းပို့ရန် ဖိထားပါ</p>
-    </div>
-    <div id="chat-container">
-        <div id="chat-messages"></div>
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="chat-in" style="flex:1; background:rgba(255,255,255,0.1); border:none; padding:10px; border-radius:15px; color:white;" placeholder="စာရေးရန်...">
-            <button onclick="sendChat()" style="background:var(--accent); border:none; border-radius:50%; width:40px; color:white;"><i class="fas fa-paper-plane"></i></button>
+    <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
+    
+    <div id="logged-in-ui" style="display:none;">
+        <div class="tab-bar">
+            <div class="tab-item active" id="t1" onclick="tab('settings')">Settings</div>
+            <div class="tab-item" id="t2" onclick="tab('chat')">Chat Box</div>
         </div>
+        <div id="settings-area">
+            <button class="report-btn" id="holdBtn"><i class="fas fa-bullhorn"></i></button>
+            <p style="text-align:center; font-size:12px; color:#aaa; text-shadow: 1px 1px 1px #000;">သတင်းပို့ရန် ၃ စက္ကန့် ဖိထားပါ</p>
+        </div>
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="chat-in" style="flex:1; background:rgba(255,255,255,0.1); border:1px solid var(--border); padding:12px; border-radius:20px; color:white;" placeholder="စာရေးရန်...">
+                <button onclick="sendChat()" style="background:var(--accent); border:none; border-radius:50%; width:45px; height:45px; color:white;"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-prompter" class="login-box-inside">
+        <i class="fas fa-lock" style="font-size: 30px; color: var(--accent);"></i>
+        <p style="margin-top:15px; font-size:13px; color:#ccc;">သတင်းပို့ရန်နှင့် စကားပြောရန်အတွက်<br>အကောင့်ဝင်ရန် လိုအပ်ပါသည်။</p>
+        <button class="login-btn-small" id="loginBtn"><i class="fab fa-google"></i> Google ဖြင့်ဝင်ရန်</button>
     </div>
 </div>
 
@@ -84,43 +97,53 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
+    // Login Action
     document.getElementById('loginBtn').onclick = () => signInWithRedirect(auth, provider);
 
+    // Auth State
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            document.getElementById('auth-overlay').style.display = 'none';
-            loadData(user);
+            document.getElementById('login-prompter').style.display = 'none';
+            document.getElementById('logged-in-ui').style.display = 'block';
+            loadApp(user);
         }
     });
 
+    // Map Setup
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.512, 100.013], 15);
     L.tileLayer('https://{s}.google.com/vt/lyrs=m,h&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
 
     let uMark = null, markers = {};
+
+    // Map location still works without login
     map.locate({ watch: true, enableHighAccuracy: true });
     map.on('locationfound', (e) => {
         if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-marker'})}).addTo(map); map.setView(e.latlng, 16); }
         else uMark.setLatLng(e.latlng);
     });
 
-    function loadData(user) {
-        // Chat
+    // Public Markers (Everyone can see)
+    onSnapshot(query(collection(db, "police_spots"), where("time", ">", new Date(Date.now() - 20*60*1000))), (sn) => {
+        document.getElementById('count').innerText = sn.size;
+        sn.forEach(d => { if(!markers[d.id]) markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map); });
+    });
+
+    function loadApp(user) {
+        // Load Chats
         const twoDays = new Date(Date.now() - 48*60*60*1000);
         onSnapshot(query(collection(db, "chats"), where("time", ">", twoDays), orderBy("time", "asc")), (sn) => {
             const m = document.getElementById('chat-messages'); m.innerHTML = "";
             sn.forEach(d => { m.innerHTML += `<div class="chat-msg"><b>${d.data().user}</b>${d.data().text}</div>`; });
             m.scrollTop = m.scrollHeight;
         });
-        // Spots
-        onSnapshot(query(collection(db, "police_spots"), where("time", ">", new Date(Date.now() - 20*60*1000))), (sn) => {
-            document.getElementById('count').innerText = sn.size;
-            sn.forEach(d => { if(!markers[d.id]) markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map); });
-        });
     }
 
     window.sendChat = async () => {
         const val = document.getElementById('chat-in').value;
-        if(val) { await addDoc(collection(db, "chats"), { text: val, user: auth.currentUser.displayName, time: serverTimestamp() }); document.getElementById('chat-in').value = ""; }
+        if(val && auth.currentUser) { 
+            await addDoc(collection(db, "chats"), { text: val, user: auth.currentUser.displayName, time: serverTimestamp() }); 
+            document.getElementById('chat-in').value = ""; 
+        }
     };
 
     window.tab = (t) => {
@@ -129,6 +152,21 @@
         document.getElementById('t1').classList.toggle('active', t=='settings');
         document.getElementById('t2').classList.toggle('active', t=='chat');
     };
+
+    // Hold to report logic
+    const btn = document.getElementById('holdBtn');
+    let timer, h_prog = 0;
+    const startH = (e) => { e.preventDefault(); timer = setInterval(() => { h_prog++; if(h_prog>=30){ clearInterval(timer); fireReport(); h_prog=0; } }, 100); };
+    const stopH = () => { clearInterval(timer); h_prog=0; };
+    btn.addEventListener('touchstart', startH); btn.addEventListener('touchend', stopH);
+    
+    async function fireReport() {
+        if(!auth.currentUser) return;
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            await addDoc(collection(db, "police_spots"), { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp(), user: auth.currentUser.displayName });
+            alert("သတင်းပေးပို့မှု အောင်မြင်ပါသည်");
+        });
+    }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
