@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v8.1</title>
+    <title>Samui Rider Pro v8.3</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -14,28 +14,24 @@
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .chip { background: var(--glass); border: 1px solid var(--border); padding: 12px; border-radius: 20px; flex: 1; text-align: center; font-size: 12px; backdrop-filter: blur(10px); font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
 
-        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); }
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s cubic-bezier(0.1, 0.9, 0.2, 1); padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); }
         .sheet.active { transform: translateY(0); }
         .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
 
         .login-box { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 30px 20px; text-align: center; border: 1px dashed var(--border); }
-        .login-btn { background: white; color: black; padding: 12px 25px; border-radius: 30px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-top: 15px; }
+        .login-btn { background: white; color: black; padding: 12px 25px; border-radius: 30px; font-weight: bold; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-top: 15px; box-shadow: 0 5px 15px rgba(255,255,255,0.1); }
 
-        #chat-container { display: none; height: 350px; flex-direction: column; }
-        #chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .chat-msg { background: rgba(255,255,255,0.06); padding: 10px; border-radius: 15px; font-size: 13px; border-left: 3px solid var(--accent); }
-        
         .report-btn { width: 80px; height: 80px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 28px; margin: 10px auto; display: block; box-shadow: 0 8px 25px rgba(255,71,87,0.4); }
-        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; }
-        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; }
+        .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
+        .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--main); }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div style="display:flex; gap:10px;">
-        <div class="chip">Active: <span id="count" style="color:var(--main)">0</span></div>
-        <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">MENU</div>
+        <div class="chip">Active Reports: <span id="count" style="color:var(--main)">0</span></div>
+        <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')"><i class="fas fa-bars"></i> MENU</div>
     </div>
 </div>
 
@@ -45,7 +41,9 @@
     <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
     
     <div id="logged-in-ui" style="display:none;">
-        <div style="text-align:center; margin-bottom:20px; font-weight:bold; color:var(--accent);">Welcome, <span id="user-name"></span></div>
+        <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--accent);">
+            User: <span id="user-name"></span>
+        </div>
         <div id="settings-area">
             <button class="report-btn" id="holdBtn"><i class="fas fa-bullhorn"></i></button>
             <p style="text-align:center; font-size:12px; color:#aaa;">သတင်းပို့ရန် ၃ စက္ကန့် ဖိထားပါ</p>
@@ -53,7 +51,7 @@
     </div>
 
     <div id="login-prompter" class="login-box">
-        <p style="font-size:13px; color:#ccc;">Google Account ဖြင့်ဝင်ပြီး သတင်းပို့ပါ</p>
+        <p style="font-size:13px; color:#ccc;">သတင်းပို့ရန် Google အကောင့်ဖြင့် ဝင်ပေးပါ</p>
         <button class="login-btn" id="loginBtn"><i class="fab fa-google"></i> Google နှင့်ဝင်ရန်</button>
     </div>
 </div>
@@ -63,8 +61,9 @@
     import { getFirestore, collection, addDoc, onSnapshot, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // API Key မှန်ကန်စွာ ပြင်ဆင်ထားသော Config
     const firebaseConfig = { 
-        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzf", 
+        apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZfzf", 
         authDomain: "samui-alert.firebaseapp.com", 
         projectId: "samui-alert", 
         storageBucket: "samui-alert.firebasestorage.app", 
@@ -79,14 +78,17 @@
 
     // Login Action
     document.getElementById('loginBtn').onclick = () => {
-        signInWithRedirect(auth, provider).catch(err => alert("Login error: " + err.message));
+        signInWithRedirect(auth, provider);
     };
 
-    // Handle Redirect Result
-    getRedirectResult(auth).then((result) => {
-        if (result?.user) console.log("User logged in:", result.user.displayName);
-    }).catch((error) => alert("Login failed: " + error.message));
+    // Login ဝင်ပြီး ပြန်လာခြင်းကို စစ်ဆေးခြင်း
+    getRedirectResult(auth).catch((error) => {
+        if(error.code !== "auth/redirect-cancelled-by-user") {
+            alert("Login Error: " + error.message);
+        }
+    });
 
+    // အကောင့်ဝင်ထားခြင်း ရှိ၊ မရှိ စစ်ဆေးခြင်း
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('login-prompter').style.display = 'none';
@@ -96,6 +98,7 @@
         }
     });
 
+    // မြေပုံတည်ဆောက်ခြင်း
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.512, 100.013], 15);
     L.tileLayer('https://{s}.google.com/vt/lyrs=m,h&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
 
@@ -106,13 +109,19 @@
         else uMark.setLatLng(e.latlng);
     });
 
+    // ဒေတာများ ဆွဲယူခြင်း
     function loadData() {
         onSnapshot(query(collection(db, "police_spots"), where("time", ">", new Date(Date.now() - 20*60*1000))), (sn) => {
             document.getElementById('count').innerText = sn.size;
-            sn.forEach(d => { if(!markers[d.id]) markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map); });
+            sn.forEach(d => { 
+                if(!markers[d.id]) {
+                    markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map); 
+                }
+            });
         });
     }
 
+    // သတင်းပို့ရန် ခလုတ်ကို ဖိထားရသည့်စနစ်
     const hBtn = document.getElementById('holdBtn');
     let hTimer, hCount = 0;
     const startH = (e) => { e.preventDefault(); hTimer = setInterval(() => { hCount++; if(hCount>=30){ clearInterval(hTimer); fire(); hCount=0; } }, 100); };
@@ -122,9 +131,14 @@
 
     async function fire() {
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            await addDoc(collection(db, "police_spots"), { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp(), user: auth.currentUser.displayName });
+            await addDoc(collection(db, "police_spots"), { 
+                lat: pos.coords.latitude, 
+                lng: pos.coords.longitude, 
+                time: serverTimestamp(), 
+                user: auth.currentUser.displayName 
+            });
             alert("သတင်းပို့ပြီးပါပြီ။");
-        }, (err) => alert("Location error: " + err.message));
+        });
     }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
