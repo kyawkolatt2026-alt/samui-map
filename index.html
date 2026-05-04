@@ -3,101 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider v16.1</title>
+    <title>Samui Rider Pro v18.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --main: #ff4757; --bg: #0b0b0d; --card: rgba(20, 20, 22, 0.98); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --safe: #2ed573; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; }
+        :root { --main: #ff4757; --bg: #0b0b0d; --card: rgba(20, 20, 22, 0.95); --border: rgba(255, 255, 255, 0.1); --accent: #1e90ff; --safe: #2ed573; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
 
-        /* Floating UI Components */
-        .top-bar { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; }
-        .chip { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 12px; flex: 1; text-align: center; font-size: 10px; font-weight: bold; backdrop-filter: blur(10px); box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        /* Long Press Overlay */
+        #hold-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); pointer-events: none; }
+        .p-ring { width: 80px; height: 80px; border: 8px solid rgba(255,255,255,0.1); border-top: 8px solid var(--main); border-radius: 50%; }
+        .p-ring.active { animation: spin 3s linear forwards; }
+        .p-ring.done { border-color: var(--safe) !important; transition: 0.3s; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .side-controls { position: fixed; right: 15px; bottom: 120px; z-index: 1500; display: flex; flex-direction: column; gap: 15px; }
-        .fab { width: 55px; height: 55px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .btn-red { background: var(--main); color: white; }
-        .btn-blue { background: var(--accent); color: white; }
+        /* Top Bar Info */
+        .top-info { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 8px; }
+        .pill { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 12px; flex: 1; text-align: center; color: white; font-size: 11px; font-weight: bold; backdrop-filter: blur(10px); }
 
-        /* Main Dashboard Sheet */
-        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--card); border-radius: 25px 25px 0 0; transform: translateY(calc(100% - 100px)); transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28); padding: 15px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; }
+        /* Right Side Buttons */
+        .controls { position: fixed; right: 15px; bottom: 130px; z-index: 1500; display: flex; flex-direction: column; gap: 15px; }
+        .btn { width: 55px; height: 55px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .btn-report { background: var(--main); }
+        .btn-gps { background: var(--accent); }
+
+        /* Bottom Sheet UI */
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--card); border-radius: 25px 25px 0 0; transform: translateY(calc(100% - 115px)); transition: 0.4s; padding: 15px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; color: white; }
         .sheet.active { transform: translateY(0); }
-        .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
+        .handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; }
 
-        /* ✅ Chat Box - Fixed and Always Integrated */
-        .chat-section { flex: 1; background: rgba(255,255,255,0.03); border-radius: 15px; border: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; margin-bottom: 15px; min-height: 200px; overflow: hidden; }
-        #chat-logs { flex: 1; overflow-y: auto; font-size: 13px; margin-bottom: 10px; padding-right: 5px; }
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; color: white; outline: none; }
+        /* Report List Section */
+        .report-scroller { background: rgba(0,0,0,0.2); border-radius: 15px; padding: 10px; border: 1px solid var(--border); margin-bottom: 10px; max-height: 100px; overflow-y: auto; font-size: 12px; }
+        .report-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        /* ✅ Map Styles & Settings */
-        .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .setting-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
-        .setting-box label { font-size: 10px; color: #888; display: block; margin-bottom: 5px; }
-        select { width: 100%; background: transparent; color: white; border: none; outline: none; font-size: 12px; }
+        /* Chat Section */
+        .chat-wrap { flex: 1; display: flex; flex-direction: column; background: rgba(255,255,255,0.03); border-radius: 15px; padding: 10px; border: 1px solid var(--border); margin-bottom: 10px; min-height: 180px; }
+        #chat-view { flex: 1; overflow-y: auto; font-size: 13px; margin-bottom: 8px; }
+        .chat-bar { display: flex; gap: 8px; }
+        .chat-bar input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 20px; padding: 10px 15px; color: white; outline: none; }
 
-        .p-marker { width: 25px; height: 25px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); animation: pulse 1.2s infinite; }
+        /* Setting Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); font-size: 11px; }
+        select { width: 100%; background: transparent; color: white; border: none; font-size: 12px; margin-top: 5px; outline: none; }
+
+        .p-marker { width: 25px; height: 25px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body onclick="initAudio()">
 
-<div class="top-bar">
-    <div class="chip">NEARBY: <span id="near-count" style="color:var(--main)">0</span></div>
-    <div class="chip">RADIUS: <span id="radius-val" style="color:var(--accent)">5</span>km</div>
-    <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">DASHBOARD</div>
+<div class="top-info">
+    <div class="pill">🚨 <span id="near-count" style="color:var(--main)">0</span> NEARBY</div>
+    <div class="pill">📏 <span id="dist-ui">5</span> KM</div>
 </div>
 
-<div class="side-controls">
-    <div class="fab btn-red" onclick="sendQuickReport()"><i class="fas fa-bullhorn"></i></div>
-    <div class="fab btn-blue" id="centerBtn" onclick="toggleFollow(true)"><i class="fas fa-crosshairs"></i></div>
+<div id="hold-overlay">
+    <div style="text-align:center;">
+        <div class="p-ring" id="p-ring"></div>
+        <div style="margin-top:15px; font-weight:bold; color:white;" id="p-text">နေရာကို ၃ စက္ကန့်ဖိထားပါ</div>
+    </div>
+</div>
+
+<div class="controls">
+    <div class="btn btn-report" onclick="sendQuickReport()"><i class="fas fa-bullhorn"></i></div>
+    <div class="btn btn-gps" id="centerBtn" onclick="toggleFollow(true)"><i class="fas fa-crosshairs"></i></div>
 </div>
 
 <div id="map"></div>
 
 <div class="sheet" id="sheet">
-    <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
+    <div class="handle" onclick="this.parentElement.classList.toggle('active')"></div>
     
     <div id="app-ui" style="display:none; flex-direction: column; flex: 1; overflow: hidden;">
-        <span style="font-size: 10px; color: #888; margin-bottom: 5px;">COMMUNITY CHAT</span>
-        <div class="chat-section">
-            <div id="chat-logs"></div>
-            <div class="chat-input-row">
-                <input type="text" id="chat-txt" class="chat-input" placeholder="မက်ဆေ့ခ်ျပို့ပါ...">
+        <div class="report-scroller" id="report-list"></div>
+
+        <div class="chat-wrap">
+            <div id="chat-view"></div>
+            <div class="chat-bar">
+                <input type="text" id="chat-msg" placeholder="စာရိုက်ပါ...">
                 <button onclick="sendChat()" style="background:var(--accent); border:none; color:white; border-radius:50%; width:38px; height:38px;"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
-        <div class="settings-row">
-            <div class="setting-box">
+        <div class="grid">
+            <div class="card">
                 <label>Map Style</label>
                 <select onchange="changeMap(this.value)">
-                    <option value="m">Normal Map</option>
+                    <option value="m">Normal View</option>
                     <option value="s">Satellite View</option>
-                    <option value="y">Hybrid (Satellite + Road)</option>
+                    <option value="y">Hybrid View</option>
                 </select>
             </div>
-            <div class="setting-box">
+            <div class="card">
+                <label>Distance Control</label>
+                <input type="range" min="1" max="20" value="5" oninput="updateRadius(this.value)" style="width:100%">
+            </div>
+            <div class="card">
                 <label>Alert Sound</label>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span id="sound-status" style="font-size:10px;">ON</span>
-                    <input type="checkbox" checked onchange="toggleAlert(this.checked)">
-                </div>
+                <input type="checkbox" id="sndToggle" checked onchange="isAlertOn = this.checked; if(!this.checked) stopSiren();">
+            </div>
+            <div class="card" onclick="logout()" style="display:flex; align-items:center; justify-content:center; color:var(--main); font-weight:bold;">
+                LOGOUT
             </div>
         </div>
-
-        <div class="setting-box" style="margin-bottom: 10px;">
-            <label>Scanning Distance (km)</label>
-            <input type="range" min="1" max="20" value="5" oninput="updateRadius(this.value)" style="width:100%">
-        </div>
-
-        <button onclick="logout()" style="color:var(--main); background:none; border:none; font-size:11px; align-self:center;">LOGOUT</button>
     </div>
 
-    <div id="auth-ui" style="display:flex; flex-direction:column; gap:10px;">
+    <div id="auth-ui" style="display:flex; flex-direction:column; gap:8px;">
         <h3 style="text-align:center; margin:0 0 10px 0;">Samui Rider Pro</h3>
-        <input type="text" id="reg-name" style="display:none; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Display Name">
+        <input type="text" id="reg-user" style="display:none; padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Name">
         <input type="email" id="email" style="padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Email">
         <input type="password" id="pass" style="padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:white;" placeholder="Password">
         <div id="auth-btns" style="display:flex; gap:10px;">
@@ -122,22 +137,21 @@
 
     let audioOK = false, isAlertOn = true;
     window.initAudio = () => { if(!audioOK) { const a = document.getElementById('alertSound'); a.play().then(()=>a.pause()); audioOK = true; } };
-    window.toggleAlert = (v) => { isAlertOn = v; document.getElementById('sound-status').innerText = v ? "ON" : "OFF"; if(!v) stopSiren(); };
 
-    window.showReg = () => { document.getElementById('reg-name').style.display='block'; document.getElementById('auth-btns').style.display='none'; document.getElementById('reg-final').style.display='block'; };
+    window.showReg = () => { document.getElementById('reg-user').style.display='block'; document.getElementById('auth-btns').style.display='none'; document.getElementById('reg-final').style.display='block'; };
     window.login = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(()=>alert("Login Error"));
     window.register = async () => {
-        try { const res = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); await updateProfile(res.user, { displayName: document.getElementById('reg-name').value }); location.reload(); } catch(e) { alert(e.message); }
+        try { const res = await createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); await updateProfile(res.user, { displayName: document.getElementById('reg-user').value }); location.reload(); } catch(e) { alert(e.message); }
     };
     window.logout = () => signOut(auth).then(() => location.reload());
 
     onAuthStateChanged(auth, (u) => {
         document.getElementById('auth-ui').style.display = u ? 'none' : 'flex';
         document.getElementById('app-ui').style.display = u ? 'flex' : 'none';
-        if(u) { initMap(); initChat(); syncSpots(); }
+        if(u) { initMap(); initChat(); syncData(); }
     });
 
-    let map, uMark, pMarkers = {}, scanRadius = 5, polData = [], tileLayer, autoFollow = true;
+    let map, uMark, pMarkers = {}, scanRadius = 5, polData = [], tileLayer, autoFollow = true, hTimer;
 
     function initMap() {
         if(map) return;
@@ -146,30 +160,48 @@
         
         map.locate({ watch: true, enableHighAccuracy: true });
         map.on('locationfound', (e) => {
-            if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-m', html:'<div style="width:16px;height:16px;background:#1e90ff;border:3px solid white;border-radius:50%"></div>'})}).addTo(map); map.setView(e.latlng, 17); }
+            if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-m', html:'<div style="width:18px;height:18px;background:#1e90ff;border:3px solid white;border-radius:50%"></div>'})}).addTo(map); map.setView(e.latlng, 17); }
             else { uMark.setLatLng(e.latlng); if(autoFollow) map.panTo(e.latlng); }
             checkNearby();
         });
-        map.on('dragstart', () => toggleFollow(false));
+
+        // ✅ ၃ စက္ကန့်ဖိထားမှ Report တင်မည့်စနစ်
+        map.on('mousedown touchstart', (e) => {
+            if(!auth.currentUser) return;
+            const overlay = document.getElementById('hold-overlay'), ring = document.getElementById('p-ring'), txt = document.getElementById('p-text');
+            overlay.style.display = 'flex'; ring.classList.add('active'); ring.classList.remove('done'); txt.innerText = "၃ စက္ကန့်ဖိထားပါ";
+            hTimer = setTimeout(() => {
+                ring.classList.add('done'); txt.innerText = "သတင်းပို့ပြီးပါပြီ!";
+                if(navigator.vibrate) navigator.vibrate([150, 50, 150]);
+                addDoc(collection(db, "police_spots"), { lat: e.latlng.lat, lng: e.latlng.lng, time: serverTimestamp(), user: auth.currentUser.displayName || "Rider" });
+                setTimeout(() => { overlay.style.display = 'none'; ring.classList.remove('active'); }, 800);
+            }, 3000);
+        });
+        const cancelH = () => { clearTimeout(hTimer); document.getElementById('hold-overlay').style.display='none'; document.getElementById('p-ring').classList.remove('active'); };
+        map.on('mouseup touchend dragstart', cancelH);
     }
 
     window.changeMap = (t) => { if(tileLayer) map.removeLayer(tileLayer); tileLayer = L.tileLayer(`https://{s}.google.com/vt/lyrs=${t}&x={x}&y={y}&z={z}`, { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map); };
     window.toggleFollow = (v) => { autoFollow = v; document.getElementById('centerBtn').style.background = v ? 'var(--safe)' : 'var(--accent)'; if(v && uMark) map.panTo(uMark.getLatLng()); };
-    window.updateRadius = (v) => { scanRadius = v; document.getElementById('radius-val').innerText = v; checkNearby(); };
+    window.updateRadius = (v) => { scanRadius = v; document.getElementById('dist-ui').innerText = v; checkNearby(); };
 
     window.sendQuickReport = () => {
-        if(!uMark) return alert("GPS ရှာမတွေ့ပါ");
+        if(!uMark) return;
         addDoc(collection(db, "police_spots"), { lat: uMark.getLatLng().lat, lng: uMark.getLatLng().lng, time: serverTimestamp(), user: auth.currentUser.displayName || "Rider" });
-        alert("သတင်းပို့ပြီးပါပြီ!");
+        if(navigator.vibrate) navigator.vibrate(100);
+        alert("လက်ရှိနေရာကို သတင်းပို့ပြီးပါပြီ");
     };
 
-    function syncSpots() {
+    function syncData() {
         const cutoff = new Date(Date.now() - 40 * 60 * 1000);
         onSnapshot(query(collection(db, "police_spots"), where("time", ">", cutoff), orderBy("time", "desc")), (sn) => {
             polData = [];
+            const listUI = document.getElementById('report-list'); listUI.innerHTML = "";
             Object.keys(pMarkers).forEach(id => { if(!sn.docs.find(d => d.id === id)) { map.removeLayer(pMarkers[id]); delete pMarkers[id]; } });
             sn.forEach(doc => {
                 const d = doc.data(); polData.push({lat: d.lat, lng: d.lng});
+                const t = d.time ? d.time.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--';
+                listUI.innerHTML += `<div class="report-item"><span>⚠️ Spot (${d.user || 'Rider'})</span> <b>${t}</b></div>`;
                 if(!pMarkers[doc.id]) pMarkers[doc.id] = L.marker([d.lat, d.lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map);
             });
             checkNearby();
@@ -180,7 +212,7 @@
         if(!uMark || polData.length === 0) { stopSiren(); return; }
         let count = 0; polData.forEach(p => { if(map.distance(uMark.getLatLng(), [p.lat, p.lng]) / 1000 <= scanRadius) count++; });
         document.getElementById('near-count').innerText = count;
-        if(count > 0 && isAlertOn) playSiren(); else stopSiren();
+        if(count > 0 && isAlertOn) { playSiren(); if(navigator.vibrate) navigator.vibrate(500); } else { stopSiren(); }
     }
 
     function playSiren() { document.getElementById('alertSound').play().catch(()=>{}); }
@@ -188,7 +220,7 @@
 
     function initChat() {
         onSnapshot(query(collection(db, "public_chat"), orderBy("time", "desc"), limit(30)), (sn) => {
-            const box = document.getElementById('chat-logs'); box.innerHTML = "";
+            const box = document.getElementById('chat-view'); box.innerHTML = "";
             let msgs = []; sn.forEach(doc => msgs.push(doc.data()));
             msgs.reverse().forEach(m => { box.innerHTML += `<div style="margin-bottom:8px;"><b style="color:var(--accent); font-size:11px;">${m.user}:</b> <span style="color:#ddd">${m.text}</span></div>`; });
             box.scrollTop = box.scrollHeight;
@@ -196,7 +228,7 @@
     }
 
     window.sendChat = async () => {
-        const inp = document.getElementById('chat-txt'); if(!inp.value.trim()) return;
+        const inp = document.getElementById('chat-msg'); if(!inp.value.trim()) return;
         await addDoc(collection(db, "public_chat"), { user: auth.currentUser.displayName || "Rider", text: inp.value, time: serverTimestamp() });
         inp.value = "";
     };
