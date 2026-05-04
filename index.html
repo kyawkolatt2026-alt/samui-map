@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Samui Rider Pro v9.7</title>
+    <title>Samui Rider Pro v9.8</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,29 +11,35 @@
         body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
         
+        /* Headers */
         .header { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px; }
         .chip { background: var(--glass); border: 1px solid var(--border); padding: 12px; border-radius: 20px; flex: 1; text-align: center; font-size: 12px; backdrop-filter: blur(10px); font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
 
-        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 110px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; }
+        /* Bottom Sheet */
+        .sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2000; background: var(--glass); border-radius: 30px 30px 0 0; transform: translateY(calc(100% - 120px)); transition: 0.4s; padding: 20px; border-top: 1px solid var(--border); backdrop-filter: blur(20px); max-height: 85vh; display: flex; flex-direction: column; }
         .sheet.active { transform: translateY(0); }
         .handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 0 auto 15px auto; flex-shrink: 0; }
 
         /* Chat Section */
-        #chat-section { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 10px; display: none; }
-        #chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 15px; background: rgba(0,0,0,0.2); margin-bottom: 10px; }
-        .msg { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 12px; width: fit-content; max-width: 80%; }
-        .msg b { color: var(--accent); font-size: 11px; display: block; }
-        .chat-input-area { display: flex; gap: 8px; }
-        .chat-input-area input { flex-grow: 1; }
-
-        /* Login UI */
+        #chat-section { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 10px; }
+        #chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 15px; background: rgba(0,0,0,0.3); margin-bottom: 10px; height: 200px; }
+        .msg { background: rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 12px; width: fit-content; max-width: 85%; line-height: 1.4; }
+        .msg b { color: var(--accent); font-size: 10px; display: block; margin-bottom: 2px; }
+        .chat-input-area { display: flex; gap: 8px; flex-shrink: 0; }
+        
+        /* Auth & Inputs */
         .login-box { display: flex; flex-direction: column; gap: 12px; }
         .input-group { position: relative; width: 100%; }
-        input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 14px; border-radius: 15px; color: white; width: 100%; box-sizing: border-box; outline: none; font-size: 14px; }
+        input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 14px; border-radius: 15px; color: white; width: 100%; box-sizing: border-box; outline: none; }
         .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #666; cursor: pointer; }
-        .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 15px; font-weight: bold; cursor: pointer; }
+        .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
         
-        .report-btn { width: 70px; height: 70px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 24px; margin: 10px auto; display: block; box-shadow: 0 5px 15px rgba(255,71,87,0.3); flex-shrink: 0; }
+        /* Report Button Animation */
+        .report-btn { width: 80px; height: 80px; border-radius: 50%; background: var(--main); border: none; color: white; font-size: 28px; margin: 10px auto; display: block; box-shadow: 0 5px 20px rgba(255,71,87,0.4); flex-shrink: 0; transition: 0.1s; -webkit-tap-highlight-color: transparent; }
+        .report-btn:active { background: #ff6b81; transform: scale(0.9); }
+
+        /* Markers */
         .u-marker { width: 18px; height: 18px; background: var(--accent); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px var(--accent); }
         .p-marker { width: 22px; height: 22px; background: var(--main); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--main); }
     </style>
@@ -41,8 +47,8 @@
 <body>
 
 <div class="header">
-    <div class="chip">Active: <span id="count" style="color:var(--main)">0</span></div>
-    <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">MENU / CHAT</div>
+    <div class="chip">Police Active: <span id="count" style="color:var(--main)">0</span></div>
+    <div class="chip" onclick="document.getElementById('sheet').classList.toggle('active')">DASHBOARD / CHAT</div>
 </div>
 
 <div id="map"></div>
@@ -50,44 +56,47 @@
 <div class="sheet" id="sheet">
     <div class="handle" onclick="document.getElementById('sheet').classList.toggle('active')"></div>
     
-    <div id="logged-in-ui" style="display:none; height: 100%; display: flex; flex-direction: column;">
-        <div style="text-align: center; flex-shrink: 0;">
+    <div id="logged-in-ui" style="display:none; flex-direction: column;">
+        <div style="text-align: center;">
             <button class="report-btn" id="holdBtn"><i class="fas fa-bullhorn"></i></button>
-            <p style="font-size:11px; color:#666; margin: 5px 0;">၃ စက္ကန့် ဖိထားပြီး သတင်းပို့ပါ</p>
+            <p id="timer-hint" style="font-size:11px; color:#888; margin: 5px 0;">၃ စက္ကန့် ဖိထားပြီး သတင်းပို့ပါ</p>
         </div>
 
-        <div id="chat-section" style="display: flex;">
+        <div id="chat-section">
             <div id="chat-messages"></div>
             <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="စာရေးရန်...">
+                <input type="text" id="chatInput" placeholder="အဖွဲ့ဝင်များသို့ စာရေးရန်...">
                 <button class="btn" onclick="sendMsg()" style="padding: 10px 20px;"><i class="fas fa-paper-plane"></i></button>
             </div>
-            <button onclick="auth.signOut()" style="background:none; color:#444; border:none; margin-top:10px; font-size:10px; align-self: center;">LOGOUT</button>
+            <button onclick="auth.signOut()" style="background:none; color:#444; border:none; margin-top:15px; font-size:10px; align-self: center;">အကောင့်ထွက်ရန်</button>
         </div>
     </div>
 
     <div id="login-prompter" class="login-box">
-        <h3 style="text-align:center; margin:0 0 10px 0;">Access Portal</h3>
+        <h3 style="text-align:center; margin:0 0 10px 0;">Samui Alert Login</h3>
         <input type="email" id="email" placeholder="Email Address">
+        
         <div class="input-group">
             <input type="password" id="pass" placeholder="Password">
             <i class="fas fa-eye toggle-pass" onclick="toggleView('pass')"></i>
         </div>
-        <div id="reg-fields" style="display: none; margin-top: 12px;">
+
+        <div id="reg-box" style="display: none; margin-top: 10px;">
             <div class="input-group">
                 <input type="password" id="confirm_pass" placeholder="Confirm Password">
                 <i class="fas fa-eye toggle-pass" onclick="toggleView('confirm_pass')"></i>
             </div>
         </div>
+
         <button class="btn" id="authBtn" onclick="handleAuth()">LOGIN</button>
-        <p id="switchText" onclick="toggleReg()" style="font-size:12px; color:var(--accent); text-align:center; margin-top:15px; cursor:pointer;">အကောင့်မရှိသေးပါက Register လုပ်ရန်</p>
+        <p id="switchBtn" onclick="toggleMode()" style="text-align:center; font-size:12px; color:var(--accent); cursor:pointer; margin-top:10px;">အကောင့်မရှိသေးလျှင် Register လုပ်ရန်</p>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = { 
         apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk", 
@@ -100,29 +109,30 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    window.auth = getAuth(app);
+    const auth = getAuth(app);
 
-    let isReg = false;
-    window.toggleReg = () => {
-        isReg = !isReg;
-        document.getElementById('reg-fields').style.display = isReg ? 'block' : 'none';
-        document.getElementById('authBtn').innerText = isReg ? 'REGISTER' : 'LOGIN';
-        document.getElementById('switchText').innerText = isReg ? 'အကောင့်ရှိပြီးသားဆိုလျှင် Login ဝင်ရန်' : 'အကောင့်မရှိသေးပါက Register လုပ်ရန်';
+    // --- Authentication ---
+    let isRegMode = false;
+    window.toggleMode = () => {
+        isRegMode = !isRegMode;
+        document.getElementById('reg-box').style.display = isRegMode ? 'block' : 'none';
+        document.getElementById('authBtn').innerText = isRegMode ? 'REGISTER NOW' : 'LOGIN';
+        document.getElementById('switchBtn').innerText = isRegMode ? 'အကောင့်ရှိလျှင် Login ဝင်ရန်' : 'အကောင့်မရှိသေးလျှင် Register လုပ်ရန်';
     };
 
     window.toggleView = (id) => {
         const el = document.getElementById(id);
-        el.type = el.type === "password" ? "text" : "password";
+        el.type = el.type === 'password' ? 'text' : 'password';
     };
 
     window.handleAuth = () => {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
-        if(!email || pass.length < 6) return alert("မှန်ကန်စွာဖြည့်ပါ");
+        if(!email || pass.length < 6) return alert("မှန်ကန်စွာ ဖြည့်စွက်ပါ (PW ၆ လုံးအနည်းဆုံး)");
 
-        if(isReg) {
-            const cPass = document.getElementById('confirm_pass').value;
-            if(pass !== cPass) return alert("Password မတူပါ");
+        if(isRegMode) {
+            const cp = document.getElementById('confirm_pass').value;
+            if(pass !== cp) return alert("Password မတူညီပါ");
             createUserWithEmailAndPassword(auth, email, pass).catch(e => alert(e.message));
         } else {
             signInWithEmailAndPassword(auth, email, pass).catch(e => alert("Login Failed: " + e.message));
@@ -130,23 +140,15 @@
     };
 
     onAuthStateChanged(auth, (user) => {
-        const loggedUI = document.getElementById('logged-in-ui');
-        const loginUI = document.getElementById('login-prompter');
-        if (user) {
-            loggedUI.style.display = 'flex';
-            loginUI.style.display = 'none';
-            loadMapData();
-            loadChat();
-        } else {
-            loggedUI.style.display = 'none';
-            loginUI.style.display = 'flex';
-        }
+        document.getElementById('login-prompter').style.display = user ? 'none' : 'flex';
+        document.getElementById('logged-in-ui').style.display = user ? 'flex' : 'none';
+        if(user) { loadMap(); loadChat(); }
     });
 
-    // Chat Logic
+    // --- Global Chat ---
     window.sendMsg = async () => {
         const input = document.getElementById('chatInput');
-        if(!input.value) return;
+        if(!input.value.trim()) return;
         await addDoc(collection(db, "messages"), {
             text: input.value,
             user: auth.currentUser.email.split('@')[0],
@@ -162,44 +164,76 @@
             box.innerHTML = "";
             sn.forEach(doc => {
                 const d = doc.data();
-                box.innerHTML += `<div class="msg"><b>${d.user}</b>${d.text}</div>`;
+                if(d.text) box.innerHTML += `<div class="msg"><b>${d.user}</b>${d.text}</div>`;
             });
             box.scrollTop = box.scrollHeight;
         });
     }
 
-    // Map Logic
+    // --- Map & Reporting ---
     var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.512, 100.013], 15);
     L.tileLayer('https://{s}.google.com/vt/lyrs=m,h&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'] }).addTo(map);
 
-    let uMark = null, markers = {};
+    let uMark = null, pMarkers = {};
     map.locate({ watch: true, enableHighAccuracy: true });
     map.on('locationfound', (e) => {
         if(!uMark) { uMark = L.marker(e.latlng, {icon: L.divIcon({className:'u-marker'})}).addTo(map); map.setView(e.latlng, 17); }
         else uMark.setLatLng(e.latlng);
     });
 
-    function loadMapData() {
-        const limitTime = new Date(Date.now() - 20 * 60 * 1000);
-        onSnapshot(query(collection(db, "police_spots"), where("time", ">", limitTime)), (sn) => {
+    function loadMap() {
+        const twentyMinsAgo = new Date(Date.now() - 20 * 60 * 1000);
+        onSnapshot(query(collection(db, "police_spots"), where("time", ">", twentyMinsAgo)), (sn) => {
             document.getElementById('count').innerText = sn.size;
-            sn.forEach(d => {
-                if(!markers[d.id]) markers[d.id] = L.marker([d.data().lat, d.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map);
+            sn.forEach(doc => {
+                if(!pMarkers[doc.id]) {
+                    pMarkers[doc.id] = L.marker([doc.data().lat, doc.data().lng], {icon: L.divIcon({className:'p-marker'})}).addTo(map);
+                }
             });
         });
     }
 
+    // --- Fixed Report Button (၃ စက္ကန့် ဖိထားရန်) ---
     const hBtn = document.getElementById('holdBtn');
     let hTimer, hCount = 0;
-    const startH = (e) => { e.preventDefault(); hTimer = setInterval(() => { hCount++; if(hCount >= 30){ clearInterval(hTimer); fire(); hCount = 0; } }, 100); };
-    const stopH = () => { clearInterval(hTimer); hCount = 0; };
-    hBtn.addEventListener('touchstart', startH); hBtn.addEventListener('touchend', stopH);
-    hBtn.addEventListener('mousedown', startH); hBtn.addEventListener('mouseup', stopH);
 
-    async function fire() {
+    const startAction = (e) => {
+        e.preventDefault();
+        hCount = 0;
+        document.getElementById('timer-hint').innerText = "သတင်းပို့ရန် စောင့်ဆိုင်းနေသည်...";
+        hTimer = setInterval(() => {
+            hCount++;
+            if(hCount >= 30) { // ၃ စက္ကန့်
+                clearInterval(hTimer);
+                fireReport();
+                hCount = 0;
+                document.getElementById('timer-hint').innerText = "သတင်းပို့ပြီးပါပြီ!";
+                setTimeout(() => { document.getElementById('timer-hint').innerText = "၃ စက္ကန့် ဖိထားပြီး သတင်းပို့ပါ"; }, 2000);
+            }
+        }, 100);
+    };
+
+    const stopAction = () => {
+        clearInterval(hTimer);
+        if(hCount < 30 && hCount > 0) {
+            document.getElementById('timer-hint').innerText = "၃ စက္ကန့် ပြည့်အောင် ဖိထားပေးပါ";
+        }
+        hCount = 0;
+    };
+
+    hBtn.addEventListener('touchstart', startAction);
+    hBtn.addEventListener('touchend', stopAction);
+    hBtn.addEventListener('mousedown', startAction);
+    hBtn.addEventListener('mouseup', stopAction);
+
+    async function fireReport() {
         navigator.geolocation.getCurrentPosition(async (pos) => {
-            await addDoc(collection(db, "police_spots"), { lat: pos.coords.latitude, lng: pos.coords.longitude, time: serverTimestamp(), user: auth.currentUser.email });
-            alert("သတင်းပို့ပြီးပါပြီ။");
+            await addDoc(collection(db, "police_spots"), {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                time: serverTimestamp(),
+                user: auth.currentUser.email
+            });
         });
     }
 </script>
