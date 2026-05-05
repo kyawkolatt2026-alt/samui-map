@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Professional</title>
+    <title>Samui Safe Ride - Police Alert</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -15,37 +15,30 @@
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
-        /* Auth Styles */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .input-box { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; font-size: 16px; user-select: text !important; -webkit-user-select: text !important; }
+        .auth-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; text-align: center; }
+        .input-box { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; }
         
-        /* UI Overlay */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; }
-        .circle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; border: none; }
+        .circle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; }
         
-        /* Bottom Panel */
         .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 20px 20px 0 0; transform: translateY(75%); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .bottom-panel.active { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }
+        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
-        /* Animation Button */
         .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }
         .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
-        .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; font-size: 15px; cursor: pointer; z-index: 5; }
+        .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; cursor: pointer; }
         
-        /* Tabs */
         .tab-nav { display: flex; border-bottom: 1px solid #333; margin: 10px 0; }
-        .tab-item { flex: 1; text-align: center; padding: 12px; color: #888; cursor: pointer; font-weight: bold; }
+        .tab-item { flex: 1; text-align: center; padding: 12px; color: #888; cursor: pointer; }
         .tab-item.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         
-        /* List & Chat */
         .list-item { background: #252525; padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; border-left: 5px solid var(--danger); }
         #chat-msgs { height: 200px; overflow-y: auto; background: #151515; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 10px; }
-        .msg { margin-bottom: 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
-        .msg b { color: var(--primary); margin-right: 5px; }
+        .msg { margin-bottom: 8px; } .msg b { color: var(--primary); }
 
         .hidden { display: none !important; }
     </style>
@@ -54,14 +47,12 @@
 
     <div id="auth-section" class="auth-overlay">
         <div class="auth-card">
-            <h2 style="color:var(--primary); margin-top:0;">SAMUI SAFE RIDE</h2>
+            <h2 style="color:var(--primary);">SAMUI SAFE RIDE</h2>
             <input type="email" id="email" class="input-box" placeholder="Email Address">
             <input type="password" id="password" class="input-box" placeholder="Password">
-            <div id="reg-box" class="hidden">
-                <input type="password" id="confirm-password" class="input-box" placeholder="Confirm Password">
-            </div>
-            <button class="pointer-all" style="width:100%; padding:15px; border-radius:12px; background:var(--primary); border:none; color:white; font-weight:bold; margin-top:10px;" id="auth-btn" onclick="handleAuth()">အကောင့်ဝင်ရန်</button>
-            <p style="margin-top:20px; font-size:13px; color:#aaa;" id="toggle-text">အကောင့်မရှိသေးပါက <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="toggleMode()">Register လုပ်ရန်</span></p>
+            <div id="reg-box" class="hidden"><input type="password" id="confirm-password" class="input-box" placeholder="Confirm Password"></div>
+            <button class="pointer-all" style="width:100%; padding:15px; border-radius:12px; background:var(--primary); border:none; color:white; font-weight:bold;" onclick="handleAuth()" id="auth-btn">အကောင့်ဝင်ရန်</button>
+            <p style="margin-top:20px; font-size:13px; color:#aaa;" id="toggle-text">အကောင့်မရှိရင် <span style="color:var(--primary); cursor:pointer;" onclick="toggleMode()">Register လုပ်ရန်</span></p>
         </div>
     </div>
 
@@ -78,32 +69,19 @@
 
             <div class="bottom-panel pointer-all" id="main-panel">
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
-                
                 <div class="hold-btn-wrapper" id="hold-trigger">
                     <div id="hold-progress" class="hold-progress-bar"></div>
-                    <button class="btn-main">👮 ၃ စက္ကန့်ဖိထားပြီး သတိပေးမည်</button>
+                    <button class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="font-size:12px; color:#888;">Alarm အကွာအဝေး: <span id="rad-txt" style="color:var(--primary)">500</span>m</label>
-                    <input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%; accent-color:var(--primary);">
-                </div>
-
+                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
                 <div class="tab-nav">
-                    <div class="tab-item active" id="tab-l" onclick="showTab('list')">Police List</div>
+                    <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>
                     <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat Box</div>
                 </div>
-
-                <div id="list-tab">
-                    <div id="pin-list" style="max-height:220px; overflow-y:auto;"></div>
-                </div>
-
+                <div id="list-tab"><div id="pin-list" style="max-height:200px; overflow-y:auto;"></div></div>
                 <div id="chat-tab" class="hidden">
                     <div id="chat-msgs"></div>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="chat-input" class="input-box" style="margin:0;" placeholder="စာရေးရန်...">
-                        <button onclick="sendChat()" style="background:var(--primary); border:none; border-radius:12px; width:70px; color:white;"><i class="fas fa-paper-plane"></i></button>
-                    </div>
+                    <div style="display:flex; gap:5px;"><input type="text" id="chat-input" class="input-box" style="margin:0;"><button onclick="sendChat()" style="background:var(--primary); border:none; width:60px; color:white; border-radius:10px;"><i class="fas fa-paper-plane"></i></button></div>
                 </div>
             </div>
         </div>
@@ -134,31 +112,22 @@
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
         let sIdx = 0;
 
-        // --- Authentication ---
         function toggleMode() {
             isReg = !isReg;
             document.getElementById('reg-box').classList.toggle('hidden');
             document.getElementById('auth-btn').innerText = isReg ? 'Register လုပ်ရန်' : 'အကောင့်ဝင်ရန်';
-            document.getElementById('toggle-text').innerHTML = isReg ? 'အကောင့်ရှိပြီးသားလား? <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="toggleMode()">Login ဝင်ရန်</span>' : 'အကောင့်မရှိသေးပါက <span style="color:var(--primary); font-weight:bold; cursor:pointer;" onclick="toggleMode()">Register လုပ်ရန်</span>';
         }
 
         async function handleAuth() {
             const e = document.getElementById('email').value, p = document.getElementById('password').value;
-            if(!e || !p) return alert("Email နှင့် Password ဖြည့်ပါ");
             try {
-                if(isReg) {
-                    const cp = document.getElementById('confirm-password').value;
-                    if(p !== cp) throw new Error("Password မတူပါ");
-                    await auth.createUserWithEmailAndPassword(e, p);
-                } else {
-                    await auth.signInWithEmailAndPassword(e, p);
-                }
+                if(isReg) { await auth.createUserWithEmailAndPassword(e, p); }
+                else { await auth.signInWithEmailAndPassword(e, p); }
                 initApp();
             } catch (err) { alert(err.message); }
         }
         function logout() { auth.signOut().then(() => location.reload()); }
 
-        // --- Map & App Core ---
         function initApp() {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
@@ -176,62 +145,58 @@
                 checkDist(latitude, longitude);
             }, null, { enableHighAccuracy: true });
 
-            setupHoldAction();
+            setupMapActions();
             syncAll();
         }
 
-        // --- ၃ စက္ကန့် ဖိထားသည့် စနစ် (Animation ပါဝင်သည်) ---
-        function setupHoldAction() {
+        // --- မြေပုံပေါ် ကြိုက်တဲ့နေရာ ဖိထားရင် Pin ထောက်မလား မေးသည့်စနစ် ---
+        function setupMapActions() {
             const btn = document.getElementById('hold-trigger');
             const prog = document.getElementById('hold-progress');
 
-            const start = () => {
+            // Button ကို ၃ စက္ကန့်ဖိထားရင် လက်ရှိနေရာကို ထောက်မယ်
+            const startBtn = () => {
                 let startT = Date.now();
-                prog.style.width = '0%';
                 progInterval = setInterval(() => {
-                    let elapsed = Date.now() - startT;
-                    let p = (elapsed / 3000) * 100;
+                    let p = ((Date.now() - startT) / 3000) * 100;
                     prog.style.width = Math.min(100, p) + '%';
                 }, 50);
-
                 pressTimer = setTimeout(() => {
-                    navigator.geolocation.getCurrentPosition(pos => {
-                        postPin(pos.coords.latitude, pos.coords.longitude);
-                        if(navigator.vibrate) navigator.vibrate(200);
-                        alert("လက်ရှိနေရာမှာ Pin ထောက်လိုက်ပါပြီ");
-                    });
-                    stop();
+                    navigator.geolocation.getCurrentPosition(pos => postPin(pos.coords.latitude, pos.coords.longitude));
+                    stopBtn();
                 }, 3000);
             };
+            const stopBtn = () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; };
 
-            const stop = () => {
-                clearTimeout(pressTimer);
-                clearInterval(progInterval);
-                prog.style.width = '0%';
-            };
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); startBtn(); });
+            btn.addEventListener('touchend', stopBtn);
 
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); start(); });
-            btn.addEventListener('touchend', stop);
-            btn.addEventListener('touchcancel', stop);
-            
-            // မြေပုံပေါ်ဖိထားရင်လည်းရအောင်
-            map.on('mousedown touchstart', (e) => {
-                start();
-                pressTimer = setTimeout(() => {
+            // မြေပုံပေါ် ကြိုက်တဲ့နေရာကို ဖိထားရင် အဲ့ဒီနေရာကို Pin ထောက်မလား မေးမယ်
+            map.on('contextmenu', (e) => {
+                if(confirm("ဒီနေရာမှာ ရဲဖမ်းနေတာ သေချာပါသလား? Pin ထောက်ပါမည်။")) {
                     postPin(e.latlng.lat, e.latlng.lng);
-                    stop();
-                }, 3000);
+                    if(navigator.vibrate) navigator.vibrate(200);
+                }
             });
-            map.on('mouseup touchend', stop);
+            
+            // ဖုန်းအတွက် Long Press စနစ် (မြေပုံပေါ် ၃ စက္ကန့် ဖိထားရင် Confirm တက်လာမယ်)
+            let mapPressTimer;
+            map.on('mousedown touchstart', (e) => {
+                mapPressTimer = setTimeout(() => {
+                    if(confirm("ရွေးချယ်ထားသော နေရာတွင် Pin ထောက်မလား?")) {
+                        postPin(e.latlng.lat, e.latlng.lng);
+                    }
+                }, 2000); // ၂ စက္ကန့် ဖိထားရင် မေးပါမယ်
+            });
+            map.on('mouseup touchend mousemove touchmove', () => clearTimeout(mapPressTimer));
         }
-
-        function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
 
         function postPin(lat, lng) {
             const id = Date.now();
             db.ref('pins/' + id).set({
                 lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0]
             });
+            alert("သတိပေးချက် တင်ပြီးပါပြီ");
         }
 
         function syncAll() {
@@ -256,7 +221,7 @@
 
         function sendChat() {
             const i = document.getElementById('chat-input'); if(!i.value) return;
-            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value, time: Date.now() });
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value });
             i.value = "";
         }
 
@@ -283,6 +248,7 @@
 
         function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; }
         function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
+        function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
     </script>
 </body>
 </html>
