@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Fixed UI</title>
+    <title>Samui Safe Ride - Continuous Alert</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -15,11 +15,10 @@
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
-        /* Login/Register UI Fix */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .auth-card { background: var(--card); padding: 35px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
         .input-box { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; font-size: 15px; }
-        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; font-size: 16px; margin-top: 10px; cursor: pointer; }
+        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; cursor: pointer; }
         
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
@@ -50,16 +49,9 @@
             <h2 style="color:var(--primary); margin-bottom: 20px;">SAMUI SAFE RIDE</h2>
             <input type="email" id="email" class="input-box" placeholder="Email Address">
             <input type="password" id="password" class="input-box" placeholder="Password">
-            
-            <div id="reg-box" class="hidden">
-                <input type="password" id="confirm-password" class="input-box" placeholder="Confirm Password">
-            </div>
-
+            <div id="reg-box" class="hidden"><input type="password" id="confirm-password" class="input-box" placeholder="Confirm Password"></div>
             <button class="pointer-all btn-auth" onclick="handleAuth()" id="auth-btn">အကောင့်ဝင်ရန်</button>
-            
-            <p style="margin-top:20px; font-size:14px; color:#aaa;" id="toggle-text">
-                အကောင့်မရှိသေးပါက <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Register လုပ်ရန်</span>
-            </p>
+            <p style="margin-top:20px; font-size:14px; color:#aaa;" id="toggle-text">အကောင့်မရှိသေးပါက <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Register လုပ်ရန်</span></p>
         </div>
     </div>
 
@@ -79,9 +71,9 @@
                     <div id="hold-progress" class="hold-progress-bar"></div>
                     <button class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
-                <div style="margin-bottom: 10px;"><label style="font-size:12px;">Alarm အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
+                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
                 <div class="tab-nav">
-                    <div class="tab-item active" id="tab-l" onclick="showTab('list')">Police List</div>
+                    <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>
                     <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat Box</div>
                 </div>
                 <div id="list-tab"><div id="pin-list" style="max-height:200px; overflow-y:auto;"></div></div>
@@ -93,7 +85,7 @@
         </div>
     </div>
 
-    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
@@ -114,39 +106,22 @@
         const db = firebase.database();
 
         let map, uMarker, uCircle, rad = 500, bell = true, isReg = false;
-        let markers = {}, pressTimer, progInterval;
+        let markers = {}, pressTimer, progInterval, alertLoop = null;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
         let sIdx = 0;
 
-        // UI Toggle Logic Fix
         function toggleMode() {
             isReg = !isReg;
-            const regBox = document.getElementById('reg-box');
-            const authBtn = document.getElementById('auth-btn');
-            const toggleText = document.getElementById('toggle-text');
-
-            if(isReg) {
-                regBox.classList.remove('hidden');
-                authBtn.innerText = "Register လုပ်ရန်";
-                toggleText.innerHTML = 'အကောင့်ရှိပြီးသားဆိုရင် <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Login ဝင်ရန်</span>';
-            } else {
-                regBox.classList.add('hidden');
-                authBtn.innerText = "အကောင့်ဝင်ရန်";
-                toggleText.innerHTML = 'အကောင့်မရှိသေးပါက <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Register လုပ်ရန်</span>';
-            }
+            document.getElementById('reg-box').classList.toggle('hidden');
+            document.getElementById('auth-btn').innerText = isReg ? "Register လုပ်ရန်" : "အကောင့်ဝင်ရန်";
+            document.getElementById('toggle-text').innerHTML = isReg ? 'အကောင့်ရှိပြီးသားဆိုရင် <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Login ဝင်ရန်</span>' : 'အကောင့်မရှိသေးပါက <span style="color:var(--primary); cursor:pointer; font-weight:bold;" onclick="toggleMode()">Register လုပ်ရန်</span>';
         }
 
         async function handleAuth() {
             const e = document.getElementById('email').value, p = document.getElementById('password').value;
-            if(!e || !p) return alert("Email နှင့် Password ဖြည့်ပါ");
             try {
-                if(isReg) {
-                    const cp = document.getElementById('confirm-password').value;
-                    if(p !== cp) throw new Error("Password မတူပါ");
-                    await auth.createUserWithEmailAndPassword(e, p);
-                } else {
-                    await auth.signInWithEmailAndPassword(e, p);
-                }
+                if(isReg) await auth.createUserWithEmailAndPassword(e, p);
+                else await auth.signInWithEmailAndPassword(e, p);
                 initApp();
             } catch (err) { alert(err.message); }
         }
@@ -185,6 +160,7 @@
                 }, 3000);
             });
             btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });
+            
             map.on('contextmenu', (e) => {
                 if(confirm("ဒီနေရာမှာ Pin ထောက်မလား?")) postPin(e.latlng.lat, e.latlng.lng);
             });
@@ -192,6 +168,7 @@
 
         function postPin(lat, lng) {
             const id = Date.now();
+            // မိနစ် ၂၀ (20 * 60 * 1000 ms) သက်တမ်းသတ်မှတ်
             db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0] });
         }
 
@@ -199,10 +176,14 @@
             db.ref('pins').on('value', snap => {
                 const data = snap.val();
                 const list = document.getElementById('pin-list'); list.innerHTML = "";
+                const now = Date.now();
                 for(let k in markers) map.removeLayer(markers[k]); markers = {};
+                
                 for(let id in data) {
                     const p = data[id];
-                    if(Date.now() > p.expires) { db.ref('pins/'+id).remove(); continue; }
+                    // မိနစ် ၂၀ ကျော်ရင် အလိုအလျောက်ဖြတ်ထုတ်မယ်
+                    if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
+                    
                     markers[id] = L.marker([p.lat, p.lng], { icon: L.divIcon({ html: '👮', className: 'p-icon', iconSize: [30, 30] }) }).addTo(map);
                     const t = new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
                     list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17)"><span><b>${p.user}</b></span><span style="color:var(--danger); font-weight:bold;">${t}</span></div>`;
@@ -215,23 +196,39 @@
             });
         }
 
-        function sendChat() {
-            const i = document.getElementById('chat-input'); if(!i.value) return;
-            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value }); i.value = "";
-        }
-
+        // --- ဆက်တိုက်မြည်မည့် Alert စနစ် ---
         function checkDist(lt, lg) {
-            if(!bell) return;
+            if(!bell) { stopAlert(); return; }
             db.ref('pins').once('value', snap => {
                 const pins = snap.val();
+                let nearby = false;
                 for(let id in pins) {
                     if(map.distance([lt, lg], [pins[id].lat, pins[id].lng]) < rad) {
-                        document.getElementById('alarm-sound').play().catch(()=>{});
-                        if(navigator.vibrate) navigator.vibrate([400, 200, 400]);
+                        nearby = true;
                         break;
                     }
                 }
+                if(nearby) startAlert();
+                else stopAlert();
             });
+        }
+
+        function startAlert() {
+            if(alertLoop) return;
+            const sound = document.getElementById('alarm-sound');
+            sound.play().catch(()=>{});
+            if(navigator.vibrate) navigator.vibrate([500, 300, 500]);
+            alertLoop = setInterval(() => {
+                sound.play().catch(()=>{});
+                if(navigator.vibrate) navigator.vibrate([500, 300, 500]);
+            }, 3000); // ၃ စက္ကန့်တခါ ဆက်တိုက်မြည်မယ်
+        }
+
+        function stopAlert() {
+            clearInterval(alertLoop);
+            alertLoop = null;
+            document.getElementById('alarm-sound').pause();
+            document.getElementById('alarm-sound').currentTime = 0;
         }
 
         function showTab(t) {
@@ -240,10 +237,14 @@
             document.getElementById('tab-l').classList.toggle('active', t === 'list');
             document.getElementById('tab-c').classList.toggle('active', t === 'chat');
         }
-        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; }
+        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
         function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
         function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
         function logout() { auth.signOut().then(() => location.reload()); }
+        function sendChat() {
+            const i = document.getElementById('chat-input'); if(!i.value) return;
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value }); i.value = "";
+        }
     </script>
 </body>
 </html>
