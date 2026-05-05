@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Police Alert</title>
+    <title>Samui Safe Ride - Full Feature</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -14,44 +14,68 @@
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
-        /* Auth UI */
+        /* Auth Styles */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        .auth-card { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .input-group { position: relative; margin-bottom: 15px; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        .pass-toggle { position: absolute; right: 10px; top: 12px; color: #888; cursor: pointer; }
         
-        /* Overlay UI */
+        /* Layout UI */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; }
         .circle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; }
         
-        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.95); padding: 15px; border-radius: 20px 20px 0 0; transform: translateY(75%); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        /* Bottom Panel */
+        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 20px 20px 0 0; transform: translateY(75%); transition: 0.3s; }
         .bottom-panel.active { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 10px; border-radius: 10px; }
+        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
-        .btn-main { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white; margin-bottom: 10px; }
+        .btn-main { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white; }
         
-        /* List Items */
-        .list-item { background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 4px solid var(--danger); align-items: center; }
-        .time-badge { color: var(--danger); font-weight: bold; font-size: 14px; }
+        /* Tabs & Lists */
+        .tab-nav { display: flex; border-bottom: 1px solid #333; margin: 10px 0; }
+        .tab-item { flex: 1; text-align: center; padding: 10px; color: #888; cursor: pointer; }
+        .tab-item.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        
+        .list-item { background: #252525; padding: 12px; border-radius: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 4px solid var(--danger); }
+        .time-text { color: var(--danger); font-weight: bold; }
+        
+        /* Chat */
+        #chat-box { height: 200px; display: flex; flex-direction: column; }
+        #chat-msgs { flex: 1; overflow-y: auto; background: #151515; padding: 10px; border-radius: 10px; font-size: 13px; }
+        .msg { margin-bottom: 5px; } .msg b { color: var(--primary); }
+
         .hidden { display: none !important; }
-        
-        /* Long Press Animation */
-        .hold-progress { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; border: 6px solid var(--primary); border-top: 6px solid transparent; border-radius: 50%; animation: spin 3s linear; z-index: 2000; display: none; }
+        #hold-ui { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; border: 6px solid var(--primary); border-top: 6px solid transparent; border-radius: 50%; animation: spin 3s linear; z-index: 2000; display: none; }
         @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="hold-ui" class="hold-progress"></div>
+    <div id="hold-ui"></div>
 
     <div id="auth-section" class="auth-overlay">
         <div class="auth-card">
-            <h2 style="color:var(--primary); margin-top:0;">SAMUI SAFE RIDE</h2>
-            <p style="font-size:13px; color:#888;">Email/Password ဖြင့် အကောင့်ဝင်ပါ</p>
-            <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="password" placeholder="Password">
-            <button class="btn-main" onclick="handleAuth()">အကောင့်ဝင်ရန် / Register</button>
+            <h2 style="text-align:center; color:var(--primary);">SAMUI SAFE RIDE</h2>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Email Address">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Password">
+                <i class="fas fa-eye pass-toggle" onclick="togglePass('password')"></i>
+            </div>
+            <div id="register-fields" class="hidden">
+                <div class="input-group">
+                    <input type="password" id="confirm-password" placeholder="Confirm Password">
+                    <i class="fas fa-eye pass-toggle" onclick="togglePass('confirm-password')"></i>
+                </div>
+            </div>
+            <button class="btn-main" id="auth-btn" onclick="handleAuth()">အကောင့်ဝင်ရန်</button>
+            <p style="text-align:center; font-size:13px; margin-top:15px; cursor:pointer;" onclick="toggleAuthMode()" id="toggle-text">
+                အကောင့်မရှိသေးပါက <span style="color:var(--primary)">Register လုပ်ရန်</span>
+            </p>
         </div>
     </div>
 
@@ -61,21 +85,38 @@
             <div class="top-bar">
                 <div class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></div>
                 <div style="display:flex; gap:10px;">
+                    <div class="pointer-all circle-btn" onclick="changeMapStyle()"><i class="fas fa-layer-group"></i></div>
                     <div class="pointer-all circle-btn" onclick="toggleAlarm()"><i id="alarm-icon" class="fas fa-bell"></i></div>
                 </div>
             </div>
 
             <div class="bottom-panel pointer-all" id="main-panel">
-                <div class="panel-handle" onclick="togglePanel()"></div>
+                <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
+                
                 <button class="btn-main" style="background:var(--danger);" onclick="dropAtCurrent()">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည်</button>
                 
-                <div style="margin: 15px 0;">
-                    <label style="font-size:12px; color:#aaa;">သတိပေးမည့်အကွာအဝေး: <span id="radius-val" style="color:var(--primary); font-weight:bold;">500</span>m</label>
-                    <input type="range" min="200" max="2000" step="100" value="500" oninput="updateRadius(this.value)" style="width:100%; accent-color:var(--primary);">
+                <div style="margin: 10px 0;">
+                    <label style="font-size:12px;">Alarm အကွာအဝေး: <span id="radius-val">500</span>m</label>
+                    <input type="range" min="200" max="2000" step="100" value="500" oninput="updateRadius(this.value)" style="width:100%;">
                 </div>
 
-                <div id="pin-list" style="max-height:280px; overflow-y:auto; padding-bottom:20px;">
-                    <p style="text-align:center; color:#555; font-size:12px;">အနီးနားရှိ ဖမ်းဆီးမှုစာရင်းများ</p>
+                <div class="tab-nav">
+                    <div class="tab-item active" onclick="switchTab('list')">စာရင်း</div>
+                    <div class="tab-item" onclick="switchTab('chat')">Chat Box</div>
+                </div>
+
+                <div id="list-tab">
+                    <div id="pin-list" style="max-height:200px; overflow-y:auto;"></div>
+                </div>
+
+                <div id="chat-tab" class="hidden">
+                    <div id="chat-box">
+                        <div id="chat-msgs"></div>
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <input type="text" id="chat-input" placeholder="သတင်းပေးရန်..." style="margin:0;">
+                            <button class="btn-main" style="width:70px; padding:10px;" onclick="sendMsg()">ပို့</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,7 +129,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <script>
-        // Firebase Configuration (သင့် Database URL ကို ထည့်သွင်းထားသည်)
         const firebaseConfig = {
             apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk",
             authDomain: "samui-alert.firebaseapp.com",
@@ -98,34 +138,49 @@
             messagingSenderId: "713193724813",
             appId: "1:713193724813:web:85831c39e3560eb310bbc4"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
         let map, userMarker, userCircle, alertRadius = 500, isAlarmOn = true;
-        let activeMarkers = {}, pressTimer;
+        let activeMarkers = {}, pressTimer, isRegister = false;
+        let mapStyles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
+        let currentStyle = 0;
 
-        // --- Auth Logic ---
+        // --- Auth Functions ---
+        function togglePass(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+        function toggleAuthMode() {
+            isRegister = !isRegister;
+            document.getElementById('register-fields').classList.toggle('hidden');
+            document.getElementById('auth-btn').innerText = isRegister ? 'Register လုပ်ရန်' : 'အကောင့်ဝင်ရန်';
+            document.getElementById('toggle-text').innerHTML = isRegister ? 'အကောင့်ရှိပြီးသားလား? <span style="color:var(--primary)">Login ဝင်ရန်</span>' : 'အကောင့်မရှိသေးပါက <span style="color:var(--primary)">Register လုပ်ရန်</span>';
+        }
         async function handleAuth() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            if(!email || !pass) return alert("Email နှင့် Password ဖြည့်ပါ");
             try {
-                // Login ဝင်ကြည့်မယ်၊ မရှိရင် Register လုပ်မယ်
-                await auth.signInWithEmailAndPassword(email, pass).catch(() => auth.createUserWithEmailAndPassword(email, pass));
+                if (isRegister) {
+                    const cp = document.getElementById('confirm-password').value;
+                    if (pass !== cp) throw new Error("Password မတူပါ");
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
                 initApp();
-            } catch (e) { alert("Error: " + e.message); }
+            } catch (e) { alert(e.message); }
         }
         function logout() { auth.signOut().then(() => location.reload()); }
 
-        // --- Map & Long Press Logic ---
+        // --- Map Logic ---
         function initApp() {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
 
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.5334, 99.9352], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            L.tileLayer(mapStyles[0]).addTo(map);
 
             // ၃ စက္ကန့်ဖိထားမှ Pin ကျမည့်စနစ်
             map.on('mousedown touchstart', (e) => {
@@ -133,16 +188,15 @@
                 pressTimer = window.setTimeout(() => {
                     savePin(e.latlng.lat, e.latlng.lng);
                     document.getElementById('hold-ui').style.display = 'none';
-                    if(navigator.vibrate) navigator.vibrate(200); // ဖုန်းတုန်ခါမှု
+                    if(navigator.vibrate) navigator.vibrate(200);
                 }, 3000);
             });
-
             map.on('mouseup touchend mousemove touchmove', () => {
                 clearTimeout(pressTimer);
                 document.getElementById('hold-ui').style.display = 'none';
             });
 
-            // GPS Location Tracking
+            // Tracking
             navigator.geolocation.watchPosition(pos => {
                 const { latitude, longitude } = pos.coords;
                 if (!userMarker) {
@@ -159,92 +213,74 @@
             startSync();
         }
 
-        // --- Database & Pin Management ---
+        function changeMapStyle() {
+            currentStyle = (currentStyle + 1) % mapStyles.length;
+            L.tileLayer(mapStyles[currentStyle]).addTo(map);
+        }
+
+        // --- Data Logic ---
         function savePin(lat, lng) {
             const id = Date.now();
             db.ref('pins/' + id).set({
-                lat, lng, 
-                time: id, 
-                expires: id + (20 * 60 * 1000), // မိနစ် ၂၀ ကြာရင် ပျက်မယ်
-                user: auth.currentUser.email.split('@')[0]
-            }).then(() => {
-                alert("သတိပေးချက် တင်ပြီးပါပြီ (၂၀ မိနစ်ကြာရင် အလိုအလျောက် ပျက်ပါမယ်)");
-            }).catch(e => alert("Database Error: " + e.message));
+                lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0]
+            }).then(() => alert("Pin ထောက်ပြီးပါပြီ"));
         }
-
-        function dropAtCurrent() {
-            navigator.geolocation.getCurrentPosition(pos => savePin(pos.coords.latitude, pos.coords.longitude));
-        }
+        function dropAtCurrent() { navigator.geolocation.getCurrentPosition(pos => savePin(pos.coords.latitude, pos.coords.longitude)); }
 
         function startSync() {
             db.ref('pins').on('value', snap => {
                 const data = snap.val();
                 const list = document.getElementById('pin-list');
                 list.innerHTML = "";
-                
-                // Old Marker များကို အရင်ရှင်းမည်
                 for (let k in activeMarkers) map.removeLayer(activeMarkers[k]);
                 activeMarkers = {};
-
                 for (let id in data) {
                     const p = data[id];
-                    // အချိန်ကုန်သွားရင် Database ကနေပါ ဖျက်မယ်
                     if (Date.now() > p.expires) { db.ref('pins/' + id).remove(); continue; }
-
-                    // မြေပုံပေါ် Pin ထည့်မည်
-                    activeMarkers[id] = L.marker([p.lat, p.lng], {
-                        icon: L.divIcon({ html: '<div style="font-size:26px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">👮</div>', className: 'p-icon' })
-                    }).addTo(map).bindPopup(`တင်သူ: ${p.user}`);
-
-                    // စာရင်းထဲသို့ အချိန်နှင့်တကွ ထည့်မည်
+                    activeMarkers[id] = L.marker([p.lat, p.lng], { icon: L.divIcon({ html: '👮', className: 'p-icon', iconSize: [30, 30] }) }).addTo(map);
                     const timeStr = new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                    list.innerHTML += `
-                        <div class="list-item" onclick="focusPin(${p.lat}, ${p.lng})">
-                            <span><b>${p.user}</b> <br> <small style="color:#888;">ရဲဖမ်းနေသည်</small></span>
-                            <span class="time-badge">${timeStr}</span>
-                        </div>`;
+                    list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17)"><span><b>${p.user}</b></span><span class="time-text">${timeStr}</span></div>`;
                 }
+            });
+            db.ref('chats').limitToLast(20).on('value', snap => {
+                const msgs = snap.val();
+                const container = document.getElementById('chat-msgs');
+                container.innerHTML = "";
+                for (let id in msgs) container.innerHTML += `<div class="msg"><b>${msgs[id].user}:</b> ${msgs[id].text}</div>`;
+                container.scrollTop = container.scrollHeight;
             });
         }
 
-        // --- Alarm & Proximity ---
+        function sendMsg() {
+            const input = document.getElementById('chat-input');
+            if(!input.value) return;
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], text: input.value, time: Date.now() });
+            input.value = "";
+        }
+
         function checkProximity(uLat, uLng) {
             if (!isAlarmOn) return;
             db.ref('pins').once('value', snap => {
                 const pins = snap.val();
                 for (let id in pins) {
-                    const dist = map.distance([uLat, uLng], [pins[id].lat, pins[id].lng]);
-                    if (dist < alertRadius) {
-                        triggerAlert();
+                    if (map.distance([uLat, uLng], [pins[id].lat, pins[id].lng]) < alertRadius) {
+                        document.getElementById('alarm-sound').play().catch(()=>{});
+                        if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
                         break;
                     }
                 }
             });
         }
 
-        function triggerAlert() {
-            // Alarm Sound (User က မြေပုံကို တစ်ချက်နှိပ်ပြီးမှ အသံထွက်ပါမယ် - Browser Policy အရ)
-            const alarm = document.getElementById('alarm-sound');
-            alarm.play().catch(() => {});
-            
-            // Vibrate (Android)
-            if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+        // --- Helper UI ---
+        function switchTab(tab) {
+            document.getElementById('list-tab').classList.toggle('hidden', tab !== 'list');
+            document.getElementById('chat-tab').classList.toggle('hidden', tab !== 'chat');
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
         }
-
-        function toggleAlarm() {
-            isAlarmOn = !isAlarmOn;
-            document.getElementById('alarm-icon').className = isAlarmOn ? 'fas fa-bell' : 'fas fa-bell-slash';
-            alert(isAlarmOn ? "အချက်ပေးစနစ် ဖွင့်ပါပြီ" : "အချက်ပေးစနစ် ပိတ်ပါပြီ");
-        }
-
-        function updateRadius(val) {
-            alertRadius = parseInt(val);
-            document.getElementById('radius-val').innerText = val;
-            if (userCircle) userCircle.setRadius(alertRadius);
-        }
-
-        function togglePanel() { document.getElementById('main-panel').classList.toggle('active'); }
-        function focusPin(lat, lng) { map.setView([lat, lng], 17); togglePanel(); }
+        function toggleAlarm() { isAlarmOn = !isAlarmOn; document.getElementById('alarm-icon').className = isAlarmOn ? 'fas fa-bell' : 'fas fa-bell-slash'; }
+        function updateRadius(val) { alertRadius = parseInt(val); document.getElementById('radius-val').innerText = val; if(userCircle) userCircle.setRadius(alertRadius); }
     </script>
 </body>
 </html>
