@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Pro</title>
+    <title>Samui Safe Ride - Success Animation</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -15,21 +15,26 @@
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
         
+        /* Auth Styles */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .auth-card { background: var(--card); padding: 35px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
         .input-box { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; font-size: 15px; }
         .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; cursor: pointer; }
         
+        /* UI Overlay */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; }
         .circle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; }
         
+        /* Bottom Panel */
         .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 20px 20px 0 0; transform: translateY(75%); transition: 0.3s; }
         .bottom-panel.active { transform: translateY(0); }
         .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
-        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); transition: 0.3s; }
+        /* Success Color Transition Animation */
+        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); transition: background 0.4s ease, transform 0.2s; }
+        .hold-btn-wrapper.success-bg { background: var(--success) !important; transform: scale(1.02); box-shadow: 0 0 20px rgba(46, 213, 115, 0.4); }
         .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
         .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
         
@@ -67,10 +72,12 @@
             </div>
             <div class="bottom-panel pointer-all" id="main-panel">
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
+                
                 <div class="hold-btn-wrapper" id="hold-trigger">
                     <div id="hold-progress" class="hold-progress-bar"></div>
                     <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
+
                 <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
                 <div class="tab-nav">
                     <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>
@@ -145,36 +152,42 @@
         }
 
         function setupActions() {
-            const btn = document.getElementById('hold-trigger');
+            const btnWrapper = document.getElementById('hold-trigger');
             const prog = document.getElementById('hold-progress');
             const btnTxt = document.getElementById('main-btn-text');
 
-            btn.addEventListener('touchstart', (e) => {
+            btnWrapper.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 let startT = Date.now();
                 progInterval = setInterval(() => {
                     let p = ((Date.now() - startT) / 3000) * 100;
                     prog.style.width = Math.min(100, p) + '%';
                 }, 50);
+
                 pressTimer = setTimeout(() => {
                     navigator.geolocation.getCurrentPosition(pos => {
                         postPin(pos.coords.latitude, pos.coords.longitude);
                         
-                        // အမှတ်အသားလုပ်ခြင်း (Success Animation)
-                        if(navigator.vibrate) navigator.vibrate(200);
+                        // အောင်မြင်ကြောင်း အရောင်ပြောင်းခြင်း (Visual Success)
+                        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                        btnWrapper.classList.add('success-bg');
                         btnTxt.innerText = "✅ သတိပေးချက် တင်ပြီးပါပြီ";
-                        btn.style.background = "var(--success)";
                         
                         setTimeout(() => {
+                            btnWrapper.classList.remove('success-bg');
                             btnTxt.innerText = "👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)";
-                            btn.style.background = "rgba(255, 71, 87, 0.2)";
-                        }, 1500);
+                        }, 2000);
                     });
-                    clearInterval(progInterval); prog.style.width = '0%';
+                    clearInterval(progInterval); 
+                    prog.style.width = '0%';
                 }, 3000);
             });
             
-            btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });
+            btnWrapper.addEventListener('touchend', () => { 
+                clearInterval(progInterval); 
+                clearTimeout(pressTimer); 
+                prog.style.width = '0%'; 
+            });
             
             map.on('contextmenu', (e) => {
                 if(confirm("ဒီနေရာမှာ Pin ထောက်မလား?")) postPin(e.latlng.lat, e.latlng.lng);
