@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Continuous Alert</title>
+    <title>Samui Safe Ride - Pro</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; }
+        :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; --success: #2ed573; }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; }
@@ -29,7 +29,7 @@
         .bottom-panel.active { transform: translateY(0); }
         .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
-        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }
+        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); transition: 0.3s; }
         .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
         .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
         
@@ -69,7 +69,7 @@
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
                 <div class="hold-btn-wrapper" id="hold-trigger">
                     <div id="hold-progress" class="hold-progress-bar"></div>
-                    <button class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
+                    <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
                 <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
                 <div class="tab-nav">
@@ -147,6 +147,8 @@
         function setupActions() {
             const btn = document.getElementById('hold-trigger');
             const prog = document.getElementById('hold-progress');
+            const btnTxt = document.getElementById('main-btn-text');
+
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 let startT = Date.now();
@@ -155,10 +157,23 @@
                     prog.style.width = Math.min(100, p) + '%';
                 }, 50);
                 pressTimer = setTimeout(() => {
-                    navigator.geolocation.getCurrentPosition(pos => postPin(pos.coords.latitude, pos.coords.longitude));
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        postPin(pos.coords.latitude, pos.coords.longitude);
+                        
+                        // အမှတ်အသားလုပ်ခြင်း (Success Animation)
+                        if(navigator.vibrate) navigator.vibrate(200);
+                        btnTxt.innerText = "✅ သတိပေးချက် တင်ပြီးပါပြီ";
+                        btn.style.background = "var(--success)";
+                        
+                        setTimeout(() => {
+                            btnTxt.innerText = "👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)";
+                            btn.style.background = "rgba(255, 71, 87, 0.2)";
+                        }, 1500);
+                    });
                     clearInterval(progInterval); prog.style.width = '0%';
                 }, 3000);
             });
+            
             btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });
             
             map.on('contextmenu', (e) => {
@@ -168,7 +183,6 @@
 
         function postPin(lat, lng) {
             const id = Date.now();
-            // မိနစ် ၂၀ (20 * 60 * 1000 ms) သက်တမ်းသတ်မှတ်
             db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0] });
         }
 
@@ -178,12 +192,9 @@
                 const list = document.getElementById('pin-list'); list.innerHTML = "";
                 const now = Date.now();
                 for(let k in markers) map.removeLayer(markers[k]); markers = {};
-                
                 for(let id in data) {
                     const p = data[id];
-                    // မိနစ် ၂၀ ကျော်ရင် အလိုအလျောက်ဖြတ်ထုတ်မယ်
                     if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
-                    
                     markers[id] = L.marker([p.lat, p.lng], { icon: L.divIcon({ html: '👮', className: 'p-icon', iconSize: [30, 30] }) }).addTo(map);
                     const t = new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
                     list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17)"><span><b>${p.user}</b></span><span style="color:var(--danger); font-weight:bold;">${t}</span></div>`;
@@ -196,17 +207,13 @@
             });
         }
 
-        // --- ဆက်တိုက်မြည်မည့် Alert စနစ် ---
         function checkDist(lt, lg) {
             if(!bell) { stopAlert(); return; }
             db.ref('pins').once('value', snap => {
                 const pins = snap.val();
                 let nearby = false;
                 for(let id in pins) {
-                    if(map.distance([lt, lg], [pins[id].lat, pins[id].lng]) < rad) {
-                        nearby = true;
-                        break;
-                    }
+                    if(map.distance([lt, lg], [pins[id].lat, pins[id].lng]) < rad) { nearby = true; break; }
                 }
                 if(nearby) startAlert();
                 else stopAlert();
@@ -221,7 +228,7 @@
             alertLoop = setInterval(() => {
                 sound.play().catch(()=>{});
                 if(navigator.vibrate) navigator.vibrate([500, 300, 500]);
-            }, 3000); // ၃ စက္ကန့်တခါ ဆက်တိုက်မြည်မယ်
+            }, 3000);
         }
 
         function stopAlert() {
