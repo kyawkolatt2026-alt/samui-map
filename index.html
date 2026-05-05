@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Full System</title>
+    <title>Samui Safe Ride - Full Optimised</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -32,8 +32,8 @@
         .bottom-panel.active { transform: translateY(0); }
         .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
-        /* Success Animation */
-        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); transition: 0.4s ease, transform 0.2s; }
+        /* Success Color Transition Animation */
+        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; background: rgba(255, 71, 87, 0.2); transition: background 0.4s ease, transform 0.2s; }
         .hold-btn-wrapper.success-bg { background: var(--success) !important; transform: scale(1.02); }
         .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
         .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
@@ -72,13 +72,12 @@
             </div>
             <div class="bottom-panel pointer-all" id="main-panel">
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
-                
                 <div class="hold-btn-wrapper" id="hold-trigger">
                     <div id="hold-progress" class="hold-progress-bar"></div>
                     <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
-
-                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">500</span>m</label><input type="range" min="200" max="2000" step="100" value="500" oninput="changeRadius(this.value)" style="width:100%;"></div>
+                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">200</span>m</label><input type="range" min="100" max="2000" step="100" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>
+                
                 <div class="tab-nav">
                     <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>
                     <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat Box</div>
@@ -112,7 +111,7 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
-        let map, uMarker, uCircle, rad = 500, bell = true, isReg = false;
+        let map, uMarker, uCircle, rad = 200, bell = true, isReg = false;
         let markers = {}, pressTimer, progInterval, alertLoop = null;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
         let sIdx = 0;
@@ -190,17 +189,11 @@
         function sendChat() {
             const i = document.getElementById('chat-input'); if(!i.value) return;
             const now = Date.now();
-            // Chat တစ်ခုချင်းစီကို ၁ ရက် (၂၄ နာရီ) သက်တမ်းသတ်မှတ်
-            db.ref('chats').push({ 
-                user: auth.currentUser.email.split('@')[0], 
-                txt: i.value, 
-                expires: now + (24 * 60 * 60 * 1000) 
-            });
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value, expires: now + (24 * 60 * 60 * 1000) });
             i.value = "";
         }
 
         function syncAll() {
-            // Pin Sync (မိနစ် ၂၀ သက်တမ်း)
             db.ref('pins').on('value', snap => {
                 const data = snap.val(); const list = document.getElementById('pin-list'); list.innerHTML = "";
                 const now = Date.now();
@@ -214,12 +207,10 @@
                 }
             });
 
-            // Chat Sync (၁ ရက် သက်တမ်း)
             db.ref('chats').on('value', snap => {
                 const c = snap.val(); const box = document.getElementById('chat-msgs'); box.innerHTML = "";
                 const now = Date.now();
                 for(let id in c) {
-                    // ၁ ရက်ကျော်တဲ့ စာတွေကို ဖျက်မယ်
                     if(now > c[id].expires) { db.ref('chats/'+id).remove(); continue; }
                     box.innerHTML += `<div class="msg"><b>${c[id].user}:</b> ${c[id].txt}</div>`;
                 }
