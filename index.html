@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Fixed Features</title>
+    <title>Samui Safe Ride - Professional Final Fix</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -13,26 +13,27 @@
 
     <style>
         :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; -webkit-touch-callout: none !important; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; background: #121212; }
         
-        /* Auth UI */
+        /* Auth */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
         .input-group { position: relative; width: 100%; margin: 10px 0; }
         .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; font-size: 16px; }
         .toggle-pw { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; }
-        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 15px; }
+        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #333; }
         .auth-tab { flex: 1; padding: 10px; color: #888; font-weight: bold; cursor: pointer; }
         .auth-tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
 
-        /* Marker & UI */
+        /* Marker UI */
         .user-loc-container { position: relative; width: 30px; height: 30px; }
         .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 7px; left: 7px; box-shadow: 0 0 10px var(--primary); }
         .user-arrow { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 18px solid #00d2ff; }
 
+        /* General UI */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         .top-right-bar { position: absolute; top: 45px; right: 15px; display: flex; flex-direction: column; gap: 12px; }
@@ -55,7 +56,7 @@
         .hidden { display: none !important; }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body oncontextmenu="return false;" onclick="unlockAudio()">
 
     <div id="auth-section" class="auth-overlay hidden">
         <div class="auth-card">
@@ -102,7 +103,7 @@
         </div>
     </div>
 
-    <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto" loop></audio>
+    <audio id="alarm-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto" loop></audio>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
@@ -122,9 +123,9 @@
         const auth = firebase.auth(), db = firebase.database();
 
         let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, isFollowing = true;
-        let uLat, uLng, authMode = 'login', sIdx = 0, heading = 0, isAlert = false, audioUnlocked = false;
+        let uLat, uLng, authMode = 'login', sIdx = 0, heading = 0, isAlerting = false, audioUnlocked = false;
 
-        // --- Auth စနစ် ---
+        // --- Auth Logic ---
         function switchAuth(m) {
             authMode = m;
             document.getElementById('l-tab').classList.toggle('active', m==='login');
@@ -139,6 +140,7 @@
         }
         async function handleAuth() {
             const e = document.getElementById('email').value, p = document.getElementById('pass').value;
+            if(!e || !p) return alert("ဖြည့်ပါ");
             try {
                 if(authMode==='login') await auth.signInWithEmailAndPassword(e, p);
                 else {
@@ -152,27 +154,32 @@
             else { document.getElementById('auth-section').classList.remove('hidden'); }
         });
 
-        // --- Map Logic ---
+        // --- Map & Sound Logic ---
+        function unlockAudio() {
+            if(audioUnlocked) return;
+            const sound = document.getElementById('alarm-sound');
+            sound.play().then(() => { sound.pause(); sound.currentTime = 0; audioUnlocked = true; }).catch(() => {});
+        }
+
         function initApp() {
             if(map) return;
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.53, 99.93], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-            // Manual ဆွဲကြည့်ရင် Recenter ပိတ်မည်
             map.on('dragstart', () => { isFollowing = false; document.getElementById('follow-btn').classList.remove('active-follow'); });
 
-            // 🔥 လက်နဲ့ထောက်ပြီး Pin ချတဲ့စနစ် (Long Press) - Mobile အတွက် အထူးပြင်ထားသည်
-            let mTimer;
-            map.on('touchstart mousedown', (e) => {
-                unlockAudio(); // User ထိလိုက်တာနဲ့ အသံ Unlock လုပ်မည်
-                mTimer = setTimeout(() => {
-                    const latlng = e.latlng || map.mouseEventToLatLng(e.originalEvent);
+            // 🔥 ဖိထားရင် Pin ချတဲ့စနစ် (Leaflet Context Menu & Long Touch)
+            let holdTimer;
+            map.on('mousedown touchstart', (e) => {
+                unlockAudio();
+                const latlng = e.latlng;
+                holdTimer = setTimeout(() => {
                     postPin(latlng.lat, latlng.lng);
-                    if(navigator.vibrate) navigator.vibrate(150);
-                    alert("📍 နေရာကို ထောက်ပြီး Pin ချပြီးပါပြီ");
-                }, 2500); // ၂.၅ စက္ကန့် ဖိထားလျှင် Pin ကျမည်
+                    if(navigator.vibrate) navigator.vibrate(200);
+                    alert("📍 သင်ထောက်ထားသောနေရာတွင် Pin ချပြီးပါပြီ");
+                }, 2000); // ၂ စက္ကန့်ဖိထားရုံဖြင့် Pin ကျပါမည်
             });
-            map.on('touchend mouseup move', () => clearTimeout(mTimer));
+            map.on('mouseup touchend mousemove touchmove', () => clearTimeout(holdTimer));
 
             const userIcon = L.divIcon({
                 html: `<div id="arrow-rot" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`,
@@ -194,13 +201,7 @@
             }, null, {enableHighAccuracy:true});
 
             setupHoldBtn();
-            syncFirebase();
-        }
-
-        function unlockAudio() {
-            if(audioUnlocked) return;
-            const s = document.getElementById('alarm-sound');
-            s.play().then(() => { s.pause(); s.currentTime = 0; audioUnlocked = true; }).catch(e => console.log("Audio Lock"));
+            syncData();
         }
 
         function updateArrow() {
@@ -227,7 +228,7 @@
             db.ref('pins/'+id).set({lat, lng, time: id, expires: id+(20*60*1000), user: auth.currentUser.email.split('@')[0]});
         }
 
-        function syncFirebase() {
+        function syncData() {
             db.ref('pins').on('value', snap => {
                 const data = snap.val(), list = document.getElementById('pin-list'); list.innerHTML = "";
                 const now = Date.now();
@@ -236,7 +237,7 @@
                     const p = data[id];
                     if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
                     markers[id] = L.marker([p.lat, p.lng], {icon: L.divIcon({html:'👮', className:'', iconSize:[30,30]})}).addTo(map);
-                    list.innerHTML += `<div style="padding:12px; border-bottom:1px solid #333; display:flex; justify-content:space-between;" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false;"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
+                    list.innerHTML += `<div style="padding:12px; border-bottom:1px solid #333; display:flex; justify-content:space-between;" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false; document.getElementById('follow-btn').classList.remove('active-follow');"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
                 }
             });
             db.ref('chats').limitToLast(30).on('value', snap => {
@@ -256,12 +257,12 @@
         }
 
         function startAlert() {
-            if(isAlert) return; isAlert = true;
-            const s = document.getElementById('alarm-sound');
-            s.play().catch(e => { isAlert = false; });
+            if(isAlerting) return; isAlerting = true;
+            const sound = document.getElementById('alarm-sound');
+            sound.play().catch(() => { isAlerting = false; });
             if(navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500]);
         }
-        function stopAlert() { isAlert = false; const s = document.getElementById('alarm-sound'); s.pause(); s.currentTime = 0; }
+        function stopAlert() { isAlerting = false; const sound = document.getElementById('alarm-sound'); sound.pause(); sound.currentTime = 0; }
 
         function sendChat() {
             const i = document.getElementById('chat-in'); if(!i.value) return;
@@ -283,3 +284,4 @@
     </script>
 </body>
 </html>
+ဖ
