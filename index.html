@@ -1,287 +1,187 @@
-<!DOCTYPE html>
-<html lang="my">
+<!DOCTYPE html><html lang="my">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Professional Final Fix</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Samui Safe Ride - Final</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><style>
+body { margin:0; background:#121212; color:#fff; font-family:sans-serif; }
+#map { height:100vh; }
 
-    <style>
-        :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; user-select: none; }
-        #map { height: 100vh; width: 100vw; z-index: 1; background: #121212; }
-        
-        /* Auth */
-        .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
-        .input-group { position: relative; width: 100%; margin: 10px 0; }
-        .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; font-size: 16px; }
-        .toggle-pw { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; }
-        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .auth-tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #333; }
-        .auth-tab { flex: 1; padding: 10px; color: #888; font-weight: bold; cursor: pointer; }
-        .auth-tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+.bottom-panel { position:absolute; bottom:0; width:100%; background:#1e1e1e; padding:10px; }
+button { padding:10px; border:none; border-radius:10px; background:#00d2ff; color:#fff; }
+</style></head><body onclick="unlockAudio()"><div id="map"></div><div class="bottom-panel">
+<button onclick="toggleBell()">🔔 Toggle Alarm</button>
+</div><!-- 🔊 NEW LOUD ALARM --><audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto" loop></audio>
 
-        /* Marker UI */
-        .user-loc-container { position: relative; width: 30px; height: 30px; }
-        .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 7px; left: 7px; box-shadow: 0 0 10px var(--primary); }
-        .user-arrow { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 18px solid #00d2ff; }
+<script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script><script>
+const firebaseConfig = {
+apiKey: "YOUR_KEY",
+authDomain: "YOUR_DOMAIN",
+databaseURL: "YOUR_DB"
+};
 
-        /* General UI */
-        .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
-        .pointer-all { pointer-events: all; }
-        .top-right-bar { position: absolute; top: 45px; right: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; }
-        .active-follow { color: var(--primary); border: 2px solid var(--primary); }
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(85%); transition: 0.3s; }
-        .bottom-panel.active { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }
-        
-        .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 15px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }
-        .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
-        .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
+let map, uLat, uLng, rad = 200;
+let markers = {};
+let bell = true;
+let isAlerting = false;
+let audioUnlocked = false;
 
-        .tab-nav { display: flex; border-bottom: 1px solid #333; margin-bottom: 10px; }
-        .tab-item { flex: 1; text-align: center; padding: 10px; color: #888; font-weight: bold; cursor: pointer; }
-        .tab-item.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+function unlockAudio(){
+if(audioUnlocked) return;
+const s = document.getElementById("alarm-sound");
+s.play().then(()=>{ s.pause(); s.currentTime=0; audioUnlocked=true; }).catch(()=>{});
+}
 
-        #chat-msgs { height: 150px; overflow-y: auto; background: #151515; padding: 10px; border-radius: 10px; font-size: 14px; margin-bottom: 5px; text-align: left; }
-        .hidden { display: none !important; }
-    </style>
-</head>
-<body oncontextmenu="return false;" onclick="unlockAudio()">
+// 🗺️ INIT MAP
+map = L.map('map').setView([9.53,99.93], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    <div id="auth-section" class="auth-overlay hidden">
-        <div class="auth-card">
-            <h2 style="color:var(--primary);">SAMUI SAFE RIDE</h2>
-            <div class="auth-tabs">
-                <div id="l-tab" class="auth-tab active" onclick="switchAuth('login')">LOGIN</div>
-                <div id="r-tab" class="auth-tab" onclick="switchAuth('reg')">REGISTER</div>
-            </div>
-            <input type="email" id="email" class="input-box" placeholder="Email">
-            <div class="input-group"><input type="password" id="pass" class="input-box" placeholder="Password"><i class="fas fa-eye toggle-pw" onclick="toggleVis('pass', this)"></i></div>
-            <div id="conf-box" class="input-group hidden"><input type="password" id="conf" class="input-box" placeholder="Confirm Password"><i class="fas fa-eye toggle-pw" onclick="toggleVis('conf', this)"></i></div>
-            <button class="pointer-all btn-auth" onclick="handleAuth()" id="auth-btn">ဝင်ရောက်ရန်</button>
-        </div>
-    </div>
+// 📍 LOCATION
+navigator.geolocation.watchPosition(pos=>{
+uLat = pos.coords.latitude;
+uLng = pos.coords.longitude;
+}, null, {enableHighAccuracy:true});
 
-    <div id="app-section" class="hidden">
-        <div id="map"></div>
-        <div class="overlay-ui">
-            <div class="top-right-bar">
-                <button class="pointer-all circle-btn" onclick="nextMap()"><i class="fas fa-layer-group"></i></button>
-                <button id="follow-btn" class="pointer-all circle-btn active-follow" onclick="recenter()"><i class="fas fa-location-arrow"></i></button>
-                <button class="pointer-all circle-btn" onclick="toggleBell()"><i id="bell-icon" class="fas fa-bell"></i></button>
-                <button class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
-            </div>
-            <div class="bottom-panel pointer-all" id="main-panel">
-                <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
-                <div class="hold-btn-wrapper"><div id="hold-prog" class="hold-progress-bar"></div><button id="hold-btn" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button></div>
-                
-                <div class="tab-nav">
-                    <div id="t1" class="tab-item active" onclick="switchTab('list')">စာရင်း</div>
-                    <div id="t2" class="tab-item" onclick="switchTab('chat')">Chat Box</div>
-                </div>
+// ============================
+// ⏱ HOLD SYSTEM
+// ============================
 
-                <div id="list-ui">
-                    <div style="margin-bottom:10px;"><label style="font-size:12px;">အချက်ပေးအကွာအဝေး: <span id="r-txt">200</span>m</label><input type="range" min="100" max="1500" step="50" value="200" oninput="changeRad(this.value)" style="width:100%;"></div>
-                    <div id="pin-list" style="max-height:150px; overflow-y:auto;"></div>
-                </div>
-                
-                <div id="chat-ui" class="hidden">
-                    <div id="chat-msgs"></div>
-                    <div style="display:flex; gap:5px;"><input type="text" id="chat-in" class="input-box" style="margin:0;"><button onclick="sendChat()" style="background:var(--primary); border:none; width:50px; color:white; border-radius:10px;"><i class="fas fa-paper-plane"></i></button></div>
-                </div>
-            </div>
-        </div>
-    </div>
+let hold1, hold2;
 
-    <audio id="alarm-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto" loop></audio>
+map.on('mousedown touchstart', (e)=>{
+unlockAudio();
 
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+const lat = e.latlng.lat;
+const lng = e.latlng.lng;
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCBL8zFUvLBK0BoiuKbX4K_waYflCZzfzk",
-            authDomain: "samui-alert.firebaseapp.com",
-            databaseURL: "https://samui-alert-default-rtdb.asia-southeast1.firebasedatabase.app/",
-            projectId: "samui-alert",
-            storageBucket: "samui-alert.firebasestorage.app",
-            messagingSenderId: "713193724813",
-            appId: "1:713193724813:web:85831c39e3560eb310bbc4"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth(), db = firebase.database();
+// 2 sec = normal
+hold1 = setTimeout(()=>{
+postPin(lat,lng,false);
+navigator.vibrate && navigator.vibrate(200);
+alert("📍 Normal Pin");
+},2000);
 
-        let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, isFollowing = true;
-        let uLat, uLng, authMode = 'login', sIdx = 0, heading = 0, isAlerting = false, audioUnlocked = false;
+// 3 sec = alarm
+hold2 = setTimeout(()=>{
+postPin(lat,lng,true);
+navigator.vibrate && navigator.vibrate([300,100,300]);
+startAlert();
+alert("🚨 ALARM PIN!");
+},3000);
 
-        // --- Auth Logic ---
-        function switchAuth(m) {
-            authMode = m;
-            document.getElementById('l-tab').classList.toggle('active', m==='login');
-            document.getElementById('r-tab').classList.toggle('active', m==='reg');
-            document.getElementById('conf-box').classList.toggle('hidden', m==='login');
-            document.getElementById('auth-btn').innerText = m==='login' ? 'ဝင်ရောက်ရန်' : 'အကောင့်သစ်ဖွင့်ရန်';
-        }
-        function toggleVis(id, el) {
-            const i = document.getElementById(id);
-            i.type = i.type === "password" ? "text" : "password";
-            el.classList.toggle('fa-eye-slash');
-        }
-        async function handleAuth() {
-            const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-            if(!e || !p) return alert("ဖြည့်ပါ");
-            try {
-                if(authMode==='login') await auth.signInWithEmailAndPassword(e, p);
-                else {
-                    if(p !== document.getElementById('conf').value) return alert("Password မတူပါ");
-                    await auth.createUserWithEmailAndPassword(e, p);
-                }
-            } catch(err) { alert(err.message); }
-        }
-        auth.onAuthStateChanged(user => {
-            if(user) { document.getElementById('auth-section').classList.add('hidden'); document.getElementById('app-section').classList.remove('hidden'); initApp(); }
-            else { document.getElementById('auth-section').classList.remove('hidden'); }
-        });
+});
 
-        // --- Map & Sound Logic ---
-        function unlockAudio() {
-            if(audioUnlocked) return;
-            const sound = document.getElementById('alarm-sound');
-            sound.play().then(() => { sound.pause(); sound.currentTime = 0; audioUnlocked = true; }).catch(() => {});
-        }
+map.on('mouseup touchend mousemove touchmove', ()=>{
+clearTimeout(hold1);
+clearTimeout(hold2);
+});
 
-        function initApp() {
-            if(map) return;
-            map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.53, 99.93], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+// ============================
+// 📌 POST PIN
+// ============================
 
-            map.on('dragstart', () => { isFollowing = false; document.getElementById('follow-btn').classList.remove('active-follow'); });
+function postPin(lat,lng,alarm=false){
+const id = Date.now();
+db.ref("pins/"+id).set({
+lat,lng,
+alarm,
+time:id,
+expires:id+(20*60*1000)
+});
+}
 
-            // 🔥 ဖိထားရင် Pin ချတဲ့စနစ် (Leaflet Context Menu & Long Touch)
-            let holdTimer;
-            map.on('mousedown touchstart', (e) => {
-                unlockAudio();
-                const latlng = e.latlng;
-                holdTimer = setTimeout(() => {
-                    postPin(latlng.lat, latlng.lng);
-                    if(navigator.vibrate) navigator.vibrate(200);
-                    alert("📍 သင်ထောက်ထားသောနေရာတွင် Pin ချပြီးပါပြီ");
-                }, 2000); // ၂ စက္ကန့်ဖိထားရုံဖြင့် Pin ကျပါမည်
-            });
-            map.on('mouseup touchend mousemove touchmove', () => clearTimeout(holdTimer));
+// ============================
+// 🔄 SYNC DATA
+// ============================
 
-            const userIcon = L.divIcon({
-                html: `<div id="arrow-rot" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`,
-                className: '', iconSize: [30, 30], iconAnchor: [15, 15]
-            });
+db.ref("pins").on("value", snap=>{
+const data = snap.val();
+for(let k in markers){ map.removeLayer(markers[k]); }
+markers = {};
 
-            if(window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientationabsolute', (e) => { if(e.alpha !== null) { heading = 360 - e.alpha; updateArrow(); } }, true);
-            }
+for(let id in data){
+const p = data[id];
 
-            navigator.geolocation.watchPosition(pos => {
-                uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: true});
-                if(!uMarker) {
-                    uMarker = L.marker([uLat, uLng], {icon: userIcon}).addTo(map);
-                    uCircle = L.circle([uLat, uLng], {radius: rad, color:'#00d2ff', fillOpacity:0.1, weight:2}).addTo(map);
-                } else { uMarker.setLatLng([uLat, uLng]); uCircle.setLatLng([uLat, uLng]); }
-                updateArrow(); checkDist();
-            }, null, {enableHighAccuracy:true});
+if(Date.now() > p.expires){
+db.ref("pins/"+id).remove();
+continue;
+}
 
-            setupHoldBtn();
-            syncData();
-        }
+markers[id] = L.marker([p.lat,p.lng],{
+icon: L.divIcon({
+html: p.alarm ? "🚨" : "👮",
+className:"",
+iconSize:[30,30]
+})
+}).addTo(map);
+}
 
-        function updateArrow() {
-            const el = document.getElementById('arrow-rot');
-            if(el && map) {
-                const rot = map.getBearing ? map.getBearing() : 0;
-                el.style.transform = `rotate(${heading - rot}deg)`;
-            }
-        }
+checkDist();
+});
 
-        function setupHoldBtn() {
-            const btn = document.getElementById('hold-btn'), prog = document.getElementById('hold-prog');
-            let t, int, st;
-            btn.onmousedown = btn.ontouchstart = (e) => {
-                e.preventDefault(); unlockAudio(); st = Date.now();
-                int = setInterval(() => { prog.style.width = Math.min(100, ((Date.now()-st)/3000)*100)+'%'; }, 50);
-                t = setTimeout(() => { postPin(uLat, uLng); clearInterval(int); prog.style.width = '0%'; if(navigator.vibrate) navigator.vibrate(150); alert("👮 Pin တင်ပြီးပါပြီ"); }, 3000);
-            };
-            btn.onmouseup = btn.ontouchend = () => { clearInterval(int); clearTimeout(t); prog.style.width = '0%'; };
-        }
+// ============================
+// 📏 DISTANCE CHECK
+// ============================
 
-        function postPin(lat, lng) {
-            const id = Date.now();
-            db.ref('pins/'+id).set({lat, lng, time: id, expires: id+(20*60*1000), user: auth.currentUser.email.split('@')[0]});
-        }
+function checkDist(){
+if(!uLat || !bell) return stopAlert();
 
-        function syncData() {
-            db.ref('pins').on('value', snap => {
-                const data = snap.val(), list = document.getElementById('pin-list'); list.innerHTML = "";
-                const now = Date.now();
-                for(let k in markers) map.removeLayer(markers[k]); markers = {};
-                for(let id in data) {
-                    const p = data[id];
-                    if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
-                    markers[id] = L.marker([p.lat, p.lng], {icon: L.divIcon({html:'👮', className:'', iconSize:[30,30]})}).addTo(map);
-                    list.innerHTML += `<div style="padding:12px; border-bottom:1px solid #333; display:flex; justify-content:space-between;" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false; document.getElementById('follow-btn').classList.remove('active-follow');"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
-                }
-            });
-            db.ref('chats').limitToLast(30).on('value', snap => {
-                const box = document.getElementById('chat-msgs'); box.innerHTML = "";
-                snap.forEach(c => { box.innerHTML += `<div><b>${c.val().user}:</b> ${c.val().txt}</div>`; });
-                box.scrollTop = box.scrollHeight;
-            });
-        }
+db.ref("pins").once("value", snap=>{
+const pins = snap.val();
+let near = false;
 
-        function checkDist() {
-            if(!uLat || !bell) return stopAlert();
-            db.ref('pins').once('value', snap => {
-                const pins = snap.val(); let near = false;
-                for(let id in pins) { if(map.distance([uLat, uLng], [pins[id].lat, pins[id].lng]) < rad) { near = true; break; } }
-                if(near) startAlert(); else stopAlert();
-            });
-        }
+for(let id in pins){
+let d = map.distance([uLat,uLng],[pins[id].lat,pins[id].lng]);
 
-        function startAlert() {
-            if(isAlerting) return; isAlerting = true;
-            const sound = document.getElementById('alarm-sound');
-            sound.play().catch(() => { isAlerting = false; });
-            if(navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500]);
-        }
-        function stopAlert() { isAlerting = false; const sound = document.getElementById('alarm-sound'); sound.pause(); sound.currentTime = 0; }
+if(d < rad){
+near = true;
 
-        function sendChat() {
-            const i = document.getElementById('chat-in'); if(!i.value) return;
-            db.ref('chats').push({user: auth.currentUser.email.split('@')[0], txt: i.value}); i.value = "";
-        }
+if(pins[id].alarm){
+startAlert();
+return;
+}
+}
+}
 
-        function switchTab(t) {
-            document.getElementById('list-ui').classList.toggle('hidden', t!=='list');
-            document.getElementById('chat-ui').classList.toggle('hidden', t!=='chat');
-            document.getElementById('t1').classList.toggle('active', t==='list');
-            document.getElementById('t2').classList.toggle('active', t==='chat');
-        }
+if(near) startAlert();
+else stopAlert();
+});
+}
 
-        function changeRad(v) { rad = parseInt(v); document.getElementById('r-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
-        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell?'fas fa-bell':'fas fa-bell-slash'; if(!bell) stopAlert(); }
-        function nextMap() { sIdx = (sIdx+1)%2; const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']; L.tileLayer(styles[sIdx]).addTo(map); }
-        function recenter() { isFollowing = true; document.getElementById('follow-btn').classList.add('active-follow'); map.setView([uLat, uLng], 17); if(map.setBearing) map.setBearing(0); }
-        function logout() { auth.signOut().then(()=>location.reload()); }
-    </script>
-</body>
+// ============================
+// 🔊 ALERT SYSTEM
+// ============================
+
+function startAlert(){
+if(isAlerting) return;
+isAlerting = true;
+
+const s = document.getElementById("alarm-sound");
+s.volume = 1;
+
+s.play().catch(()=>{ isAlerting=false; });
+
+navigator.vibrate && navigator.vibrate([800,200,800,200,800]);
+}
+
+function stopAlert(){
+isAlerting = false;
+const s = document.getElementById("alarm-sound");
+s.pause();
+s.currentTime = 0;
+}
+
+// ============================
+// 🔔 TOGGLE
+// ============================
+
+function toggleBell(){
+bell = !bell;
+if(!bell) stopAlert();
+}
+
+</script></body>
 </html>
-ဖ
