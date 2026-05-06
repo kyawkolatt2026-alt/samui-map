@@ -20,7 +20,6 @@
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         
-        /* ခလုတ်များ ကွယ်မနေစေရန် နေရာပြန်ညှိခြင်း */
         .top-left-bar { position: absolute; top: 45px; left: 15px; display: flex; flex-direction: column; gap: 15px; }
         .top-right-bar { position: absolute; top: 45px; right: 15px; display: flex; flex-direction: column; gap: 12px; }
         
@@ -28,7 +27,7 @@
         .active-follow { color: var(--primary); border: 2px solid var(--primary); }
 
         /* User Location Marker */
-        .user-loc-container { position: relative; width: 24px; height: 24px; }
+        .user-loc-container { position: relative; width: 24px; height: 24px; transition: transform 0.1s linear; }
         .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 4px; left: 4px; z-index: 2; box-shadow: 0 0 10px var(--primary); }
         .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }
 
@@ -122,7 +121,7 @@
 
         let map, uMarker, uCircle, rad = 200, bell = true;
         let markers = {}, pressTimer, progInterval, alertLoop = null;
-        let sIdx = 0, isFollowing = true, uLat, uLng;
+        let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
         async function handleAuth() {
@@ -135,7 +134,6 @@
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
             
-            // Rotation Plugin အလုပ်လုပ်စေရန် သေချာပြင်ဆင်ထားပါသည်
             map = L.map('map', { 
                 zoomControl: false, 
                 attributionControl: false,
@@ -150,16 +148,28 @@
                 className: '', iconSize: [24, 24], iconAnchor: [12, 12]
             });
 
-            map.on('dragstart rotatestart', () => { 
+            // Map ကို လက်နဲ့ရွှေ့ရင် Follow ပိတ်မယ်
+            map.on('dragstart', () => { 
                 isFollowing = false; 
                 document.getElementById('follow-btn').classList.remove('active-follow');
             });
 
+            // တိကျသော Direction အတွက် Compass နားထောင်ခြင်း
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientationabsolute', (e) => {
+                    if (e.alpha !== null) currentHeading = 360 - e.alpha;
+                    updateMarkerRotation();
+                }, true);
+            }
+
             navigator.geolocation.watchPosition(pos => {
-                uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                const heading = pos.coords.heading || 0;
+                uLat = pos.coords.latitude; 
+                uLng = pos.coords.longitude;
                 
-                if(isFollowing) map.panTo([uLat, uLng]);
+                // Follow လုပ်ထားရင် မြေပုံကို လူရှိရာကို အလိုအလျောက်ရွှေ့မယ်
+                if(isFollowing) {
+                    map.setView([uLat, uLng], map.getZoom(), { animate: true });
+                }
 
                 if(!uMarker) {
                     uMarker = L.marker([uLat, uLng], { icon: userIcon }).addTo(map);
@@ -168,23 +178,29 @@
                     uMarker.setLatLng([uLat, uLng]);
                     uCircle.setLatLng([uLat, uLng]);
                 }
-
-                const el = document.getElementById('user-icon-rotate');
-                if(el) {
-                    const currentMapRotation = map.getBearing ? map.getBearing() : 0;
-                    el.style.transform = `rotate(${heading - currentMapRotation}deg)`;
-                }
+                updateMarkerRotation();
                 checkDist(uLat, uLng);
-            }, err => {}, { enableHighAccuracy: true });
+            }, err => {}, { enableHighAccuracy: true, maximumAge: 0 });
 
             setupActions();
             syncAll();
         }
 
+        function updateMarkerRotation() {
+            const el = document.getElementById('user-icon-rotate');
+            if(el && map) {
+                // Map လည်နေရင်လည်း မြှားက အမှန်ပြနေစေရန်
+                const mapRotation = map.getBearing ? map.getBearing() : 0;
+                el.style.transform = `rotate(${currentHeading - mapRotation}deg)`;
+            }
+        }
+
         function recenter() {
             isFollowing = true;
             document.getElementById('follow-btn').classList.add('active-follow');
-            if(uLat) map.setView([uLat, uLng], 17);
+            if(uLat) {
+                map.setView([uLat, uLng], 17, { animate: true });
+            }
             if(map.setBearing) map.setBearing(0); 
         }
 
