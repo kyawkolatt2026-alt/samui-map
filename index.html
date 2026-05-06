@@ -23,7 +23,12 @@
         .input-group { position: relative; width: 100%; margin: 10px 0; }
         .input-box { width: 100%; padding: 15px; padding-right: 45px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; outline: none; }
         .eye-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; pointer-events: all; }
-        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; pointer-events: all; }
+        
+        /* Checkbox Style */
+        .remember-me { display: flex; align-items: center; gap: 10px; margin: 15px 5px; font-size: 14px; color: #ccc; cursor: pointer; pointer-events: all; }
+        .remember-me input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+
+        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 5px; cursor: pointer; pointer-events: all; }
         .toggle-auth { margin-top: 15px; font-size: 14px; color: #aaa; pointer-events: all; cursor: pointer; }
         .toggle-auth span { color: var(--primary); font-weight: bold; }
 
@@ -73,6 +78,11 @@
                 <input type="password" id="confirm-password" class="input-box" placeholder="Confirm Password">
                 <i class="fas fa-eye eye-icon" onclick="togglePass('confirm-password')"></i>
             </div>
+
+            <label class="remember-me">
+                <input type="checkbox" id="remember-checkbox" checked> အကောင့်မှတ်ထားရန်
+            </label>
+
             <button id="auth-btn" class="pointer-all btn-auth" onclick="handleAuth()">အကောင့်ဝင်ရန်</button>
             <div class="toggle-auth" onclick="switchAuthMode()">
                 <span id="toggle-text">အကောင့်အသစ်ဖွင့်ရန် Sign Up</span>
@@ -145,7 +155,17 @@
         let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
-        // --- Auth Logic ---
+        // --- Auto Login State Observer ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                initApp();
+            } else {
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('app-section').classList.add('hidden');
+            }
+        });
+
+        // --- Auth Functions ---
         function togglePass(id) {
             const input = document.getElementById(id);
             const icon = input.nextElementSibling;
@@ -164,14 +184,22 @@
             document.getElementById('auth-btn').innerText = isLoginMode ? "အကောင့်ဝင်ရန်" : "အကောင့်ဖွင့်မည်";
             document.getElementById('toggle-text').innerHTML = isLoginMode ? "အကောင့်အသစ်ဖွင့်ရန် <span>Sign Up</span>" : "အကောင့်ရှိပြီးသားလား? <span>Login</span>";
             document.getElementById('confirm-pass-group').classList.toggle('hidden', isLoginMode);
+            // Sign Up Mode မှာ Checkbox ကို ခေတ္တဖျောက်ထားချင်ရင် ဒီမှာ ထည့်နိုင်ပါတယ် (Optional)
         }
 
         async function handleAuth() {
             const e = document.getElementById('email').value;
             const p = document.getElementById('password').value;
             const cp = document.getElementById('confirm-password').value;
-            if(!e || !p) return alert("Email နှင့် Password ဖြည့်ပါ");
+            const isRemember = document.getElementById('remember-checkbox').checked;
+
+            if(!e || !p) return alert("ကျေးဇူးပြု၍ အချက်အလက်ဖြည့်ပါ");
+
             try {
+                // Checkbox အခြေအနေအရ Login သိမ်းမသိမ်း သတ်မှတ်ခြင်း
+                const persistence = isRemember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+                await auth.setPersistence(persistence);
+
                 if (isLoginMode) {
                     await auth.signInWithEmailAndPassword(e, p);
                 } else {
@@ -179,11 +207,10 @@
                     await auth.createUserWithEmailAndPassword(e, p);
                     alert("အကောင့်ဖွင့်ခြင်း အောင်မြင်သည်");
                 }
-                initApp();
             } catch (err) { alert(err.message); }
         }
 
-        // --- Map & App Logic ---
+        // --- Map Logic ---
         function initApp() {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
@@ -192,7 +219,6 @@
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 16);
             L.tileLayer(styles[0]).addTo(map);
 
-            // Long Press on Map Feature
             map.on('contextmenu', (e) => {
                 const lat = e.latlng.lat; const lng = e.latlng.lng;
                 if(confirm("ဤနေရာတွင် Pin ထောက်မည်လား?")) {
@@ -255,7 +281,8 @@
 
         function postPin(lat, lng) {
             const id = Date.now();
-            db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0] });
+            const user = auth.currentUser ? auth.currentUser.email.split('@')[0] : "Guest";
+            db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: user });
         }
 
         function syncAll() {
@@ -289,7 +316,7 @@
 
         function startAlert() { if(alertLoop) return; document.getElementById('alarm-sound').play().catch(()=>{}); alertLoop = setInterval(() => { document.getElementById('alarm-sound').play().catch(()=>{}); if(navigator.vibrate) navigator.vibrate([500, 300, 500]); }, 3000); }
         function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }
-        function sendChat() { const i = document.getElementById('chat-input'); if(!i.value) return; db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value, expires: Date.now() + (24 * 60 * 60 * 1000) }); i.value = ""; }
+        function sendChat() { const i = document.getElementById('chat-input'); if(!i.value) return; const user = auth.currentUser ? auth.currentUser.email.split('@')[0] : "Guest"; db.ref('chats').push({ user: user, txt: i.value, expires: Date.now() + (24 * 60 * 60 * 1000) }); i.value = ""; }
         function showTab(t) { document.getElementById('list-tab').classList.toggle('hidden', t !== 'list'); document.getElementById('chat-tab').classList.toggle('hidden', t !== 'chat'); document.getElementById('tab-l').classList.toggle('active', t === 'list'); document.getElementById('tab-c').classList.toggle('active', t === 'chat'); }
         function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
         function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
