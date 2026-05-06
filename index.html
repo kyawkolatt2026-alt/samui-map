@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - 360 View</title>
+    <title>Samui Safe Ride - 360 Full Rotation</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 
     <style>
         :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; --success: #2ed573; }
@@ -30,12 +32,12 @@
         .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; }
 
         /* User Marker with Direction Arrow */
-        .user-loc-container { position: relative; width: 24px; height: 24px; transition: transform 0.2s linear; }
+        .user-loc-container { position: relative; width: 24px; height: 24px; }
         .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 4px; left: 4px; z-index: 2; box-shadow: 0 0 10px var(--primary); }
         .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }
 
         /* Panels */
-        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; }
         .bottom-panel.active { transform: translateY(0); }
         .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
 
@@ -123,19 +125,19 @@
         async function handleAuth() {
             const e = document.getElementById('email').value, p = document.getElementById('password').value;
             try { await auth.signInWithEmailAndPassword(e, p); initApp(); } 
-            catch (err) { alert("Login Fail"); }
+            catch (err) { alert("Login Error"); }
         }
 
         function initApp() {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
             
-            // ၃၆၀ ဒီဂရီ လှည့်လို့ရအောင် rotate: true ထည့်ထားပါတယ်
+            // Rotation Plugin အလုပ်လုပ်စေရန် map initialization ကိုပြင်ထားပါတယ်
             map = L.map('map', { 
                 zoomControl: false, 
                 attributionControl: false,
-                touchRotate: true, // လက်နှစ်ချောင်းနဲ့ လှည့်ခွင့်ပြုခြင်း
-                rotate: true
+                rotate: true, // Rotation ပွင့်ရန်
+                touchRotate: true // လက်နှစ်ချောင်းနဲ့ လှည့်လို့ရရန်
             }).setView([9.5334, 99.9352], 16);
             
             L.tileLayer(styles[0]).addTo(map);
@@ -145,8 +147,7 @@
                 className: '', iconSize: [24, 24], iconAnchor: [12, 12]
             });
 
-            // Map ကို ကိုင်ပြီးရွှေ့လိုက်ရင် Auto-follow ပိတ်မယ်
-            map.on('dragstart zoomstart rotatestart', () => { 
+            map.on('dragstart rotatestart', () => { 
                 isFollowing = false; 
                 document.getElementById('follow-btn').classList.remove('active-follow');
             });
@@ -165,11 +166,11 @@
                     uCircle.setLatLng([uLat, uLng]);
                 }
 
-                // မြေပုံလှည့်ထားရင်တောင် Arrow က မျက်နှာမူရာဘက်ကိုပဲ ပြနေစေရမယ်
+                // မြေပုံလှည့်ထားရင်လည်း Arrow က Direction မှန်နေစေရန်
                 const el = document.getElementById('user-icon-rotate');
                 if(el) {
-                    const mapRotation = map.getBearing ? map.getBearing() : 0;
-                    el.style.transform = `rotate(${heading - mapRotation}deg)`;
+                    const currentMapRotation = map.getBearing ? map.getBearing() : 0;
+                    el.style.transform = `rotate(${heading - currentMapRotation}deg)`;
                 }
                 checkDist(uLat, uLng);
             }, err => {}, { enableHighAccuracy: true });
@@ -182,6 +183,7 @@
             isFollowing = true;
             document.getElementById('follow-btn').classList.add('active-follow');
             if(uLat) map.setView([uLat, uLng], 17);
+            if(map.setBearing) map.setBearing(0); // မြေပုံကို မြောက်ဘက်တည့်တည့် ပြန်ဖြစ်စေခြင်း
         }
 
         function setupActions() {
