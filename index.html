@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Ultra Fix</title>
+    <title>Samui Safe Ride - Sound Fixed</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -51,9 +51,7 @@
         .hidden { display: none !important; }
     </style>
 </head>
-<body>
-
-    <div id="auth-section" class="auth-overlay hidden">
+<body onclick="enableAudioOnFirstClick()"> <div id="auth-section" class="auth-overlay hidden">
         <div class="auth-card">
             <h2 style="color:var(--primary); margin-bottom: 20px;">SAMUI SAFE RIDE</h2>
             <input type="email" id="email" class="input-box" placeholder="Email Address">
@@ -96,7 +94,7 @@
         </div>
     </div>
 
-    <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto" loop></audio>
+    <audio id="alarm-sound" src="https://noproblo.dayjo.org/ZeldaSounds/OOT/OOT_Secret.wav" preload="auto" loop></audio>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
@@ -119,7 +117,20 @@
         let map, uMarker, uCircle, rad = 200, bell = true;
         let markers = {}, pressTimer, progInterval, alertLoop = null;
         let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;
+        let audioEnabled = false;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
+
+        // User စထိလိုက်တဲ့အချိန်မှာ အသံစနစ်ကို ခွင့်ပြုချက်တောင်းခြင်း
+        function enableAudioOnFirstClick() {
+            if(!audioEnabled) {
+                const sound = document.getElementById('alarm-sound');
+                sound.play().then(() => {
+                    sound.pause();
+                    audioEnabled = true;
+                    console.log("Audio Enabled");
+                }).catch(e => console.log("Audio Init Wait..."));
+            }
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) { initApp(); } 
@@ -134,8 +145,6 @@
             try { 
                 await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
                 await auth.signInWithEmailAndPassword(e, p); 
-                // အသံကို ပထမဆုံး Interaction မှာ ခွင့်ပြုချက်ရအောင်လုပ်ခြင်း
-                document.getElementById('alarm-sound').play().then(() => document.getElementById('alarm-sound').pause()).catch(()=>{});
             } 
             catch (err) { alert("Login Error: " + err.message); }
         }
@@ -149,42 +158,25 @@
                 L.tileLayer(styles[0]).addTo(map);
 
                 const userIcon = L.divIcon({
-                    html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`,
+                    html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-dot"></div><div class="user-arrow"></div></div>`,
                     className: '', iconSize: [24, 24], iconAnchor: [12, 12]
                 });
 
-                // --- MAP LONG PRESS SYSTEM (NEW & STABLE) ---
-                map.on('contextmenu', (e) => {
-                    const lat = e.latlng.lat;
-                    const lng = e.latlng.lng;
-                    if(confirm("ရွေးချယ်ထားသောနေရာတွင် အချက်ပေး Pin ချမလား?")) {
-                        postPin(lat, lng);
-                        if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                    }
-                });
-                
-                // Mobile အတွက် ၃ စက္ကန့်ဖိခြင်း
-                let holdTime;
+                // မြေပုံပေါ် ၃ စက္ကန့်ဖိလျှင် Pin ချခြင်း
+                let holdTimer;
                 map.on('mousedown touchstart', (e) => {
-                    holdTime = setTimeout(() => {
+                    holdTimer = setTimeout(() => {
                         postPin(e.latlng.lat, e.latlng.lng);
                         if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
                         alert("✅ နေရာအသစ်တွင် Pin ချပြီးပါပြီ");
                     }, 3000);
                 });
-                map.on('mouseup touchend mousemove touchmove', () => clearTimeout(holdTime));
+                map.on('mouseup touchend mousemove touchmove', () => clearTimeout(holdTimer));
 
                 map.on('dragstart', () => { 
                     isFollowing = false; 
                     document.getElementById('follow-btn').classList.remove('active-follow');
                 });
-
-                if (window.DeviceOrientationEvent) {
-                    window.addEventListener('deviceorientationabsolute', (e) => {
-                        if (e.alpha !== null) currentHeading = 360 - e.alpha;
-                        updateMarkerRotation();
-                    }, true);
-                }
 
                 navigator.geolocation.watchPosition(pos => {
                     uLat = pos.coords.latitude; uLng = pos.coords.longitude;
@@ -196,7 +188,6 @@
                         uMarker.setLatLng([uLat, uLng]);
                         uCircle.setLatLng([uLat, uLng]);
                     }
-                    updateMarkerRotation();
                     checkDist(uLat, uLng);
                 }, err => {}, { enableHighAccuracy: true, maximumAge: 0 });
 
@@ -243,6 +234,29 @@
             db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0] });
         }
 
+        function checkDist(lt, lg) {
+            if(!bell) { stopAlert(); return; }
+            db.ref('pins').once('value', snap => {
+                const pins = snap.val(); let nearby = false;
+                for(let id in pins) { if(map.distance([lt, lg], [pins[id].lat, pins[id].lng]) < rad) { nearby = true; break; } }
+                if(nearby) startAlert(); else stopAlert();
+            });
+        }
+
+        function startAlert() {
+            if(alertLoop) return;
+            const sound = document.getElementById('alarm-sound');
+            sound.volume = 1.0;
+            const playSound = () => { sound.play().catch(e => console.log("Sound play error: ", e)); };
+            playSound();
+            alertLoop = setInterval(() => {
+                playSound();
+                if(navigator.vibrate) navigator.vibrate([600, 200, 600]);
+            }, 3000);
+        }
+
+        function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }
+
         function syncAll() {
             db.ref('pins').on('value', snap => {
                 const data = snap.val(); const list = document.getElementById('pin-list'); list.innerHTML = "";
@@ -258,54 +272,17 @@
             });
             db.ref('chats').on('value', snap => {
                 const c = snap.val(); const box = document.getElementById('chat-msgs'); box.innerHTML = "";
-                const now = Date.now();
-                for(let id in c) {
-                    if(now > c[id].expires) { db.ref('chats/'+id).remove(); continue; }
-                    box.innerHTML += `<div><b>${c[id].user}:</b> ${c[id].txt}</div>`;
-                }
+                for(let id in c) { box.innerHTML += `<div><b>${c[id].user}:</b> ${c[id].txt}</div>`; }
                 box.scrollTop = box.scrollHeight;
             });
         }
 
-        function checkDist(lt, lg) {
-            if(!bell) { stopAlert(); return; }
-            db.ref('pins').once('value', snap => {
-                const pins = snap.val(); let nearby = false;
-                for(let id in pins) { if(map.distance([lt, lg], [pins[id].lat, pins[id].lng]) < rad) { nearby = true; break; } }
-                if(nearby) startAlert(); else stopAlert();
-            });
-        }
-
-        function startAlert() {
-            if(alertLoop) return;
-            const sound = document.getElementById('alarm-sound'); 
-            sound.volume = 1.0; 
-            const playSound = () => { sound.play().catch(()=>{}); };
-            playSound();
-            alertLoop = setInterval(() => {
-                playSound();
-                if(navigator.vibrate) navigator.vibrate([600, 200, 600]);
-            }, 3000);
-        }
-
-        function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }
-        
-        function updateMarkerRotation() {
-            const el = document.getElementById('user-icon-rotate');
-            if(el && map) {
-                const mapRotation = map.getBearing ? map.getBearing() : 0;
-                el.style.transform = `rotate(${currentHeading - mapRotation}deg)`;
-            }
-        }
-        function recenter() {
-            isFollowing = true;
-            document.getElementById('follow-btn').classList.add('active-follow');
-            if(uLat) map.setView([uLat, uLng], 17, { animate: true });
-            if(map.setBearing) map.setBearing(0); 
-        }
+        function recenter() { isFollowing = true; document.getElementById('follow-btn').classList.add('active-follow'); if(uLat) map.setView([uLat, uLng], 17); }
+        function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
+        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
         function sendChat() {
             const i = document.getElementById('chat-input'); if(!i.value) return;
-            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value, expires: Date.now() + (24 * 60 * 60 * 1000) });
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value });
             i.value = "";
         }
         function showTab(t) {
@@ -314,8 +291,6 @@
             document.getElementById('tab-l').classList.toggle('active', t === 'list');
             document.getElementById('tab-c').classList.toggle('active', t === 'chat');
         }
-        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
-        function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
         function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
         function logout() { auth.signOut().then(() => location.reload()); }
     </script>
