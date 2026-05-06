@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Full System</title>
+    <title>Samui Safe Ride - Enhanced Auth</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -28,7 +28,11 @@
 
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
+        
+        .pass-group { position: relative; width: 100%; }
         .input-box { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; }
+        .toggle-pass { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; }
+        
         .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 10px; }
         
         .user-loc-container { position: relative; width: 24px; height: 24px; }
@@ -48,7 +52,6 @@
         .tab-item { flex: 1; text-align: center; padding: 12px; color: #888; font-weight: bold; cursor: pointer; }
         .tab-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
         .hidden { display: none !important; }
-        .list-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body onclick="initAudioContext()">
@@ -56,7 +59,6 @@
     <div id="auth-section" class="auth-overlay hidden">
         <div class="auth-card">
             <h2 style="color:var(--primary); margin-bottom: 5px;">SAMUI SAFE RIDE</h2>
-            <p style="font-size: 12px; color: #888; margin-bottom: 20px;">Safety monitoring system</p>
             
             <div class="tab-nav">
                 <div class="tab-item active" id="btn-login-tab" onclick="toggleAuthTab('login')">အကောင့်ဝင်ရန်</div>
@@ -65,13 +67,23 @@
 
             <div id="login-form">
                 <input type="email" id="email" class="input-box" placeholder="Email Address">
-                <input type="password" id="password" class="input-box" placeholder="Password">
+                <div class="pass-group">
+                    <input type="password" id="password" class="input-box" placeholder="Password">
+                    <i class="fas fa-eye toggle-pass" onclick="togglePassView('password', this)"></i>
+                </div>
                 <button class="pointer-all btn-auth" onclick="handleAuth('login')">LOG IN</button>
             </div>
 
             <div id="reg-form" class="hidden">
                 <input type="email" id="reg-email" class="input-box" placeholder="New Email">
-                <input type="password" id="reg-password" class="input-box" placeholder="New Password">
+                <div class="pass-group">
+                    <input type="password" id="reg-password" class="input-box" placeholder="New Password">
+                    <i class="fas fa-eye toggle-pass" onclick="togglePassView('reg-password', this)"></i>
+                </div>
+                <div class="pass-group">
+                    <input type="password" id="reg-confirm" class="input-box" placeholder="Confirm Password">
+                    <i class="fas fa-eye toggle-pass" onclick="togglePassView('reg-confirm', this)"></i>
+                </div>
                 <button class="pointer-all btn-auth" style="background: var(--success);" onclick="handleAuth('reg')">REGISTER</button>
             </div>
         </div>
@@ -90,14 +102,11 @@
             </div>
             <div class="bottom-panel pointer-all" id="main-panel">
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
-                
                 <div class="hold-btn-wrapper" id="hold-trigger">
                     <div id="hold-progress" class="hold-progress-bar"></div>
                     <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>
                 </div>
-                
                 <div style="margin-bottom: 15px;"><label style="font-size:12px;">အချက်ပေးအကွာအဝေး: <span id="rad-txt">200</span>m</label><input type="range" min="100" max="2000" step="50" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>
-                
                 <div class="tab-nav">
                     <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>
                     <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat Box</div>
@@ -136,23 +145,29 @@
         let sIdx = 0, isFollowing = true, uLat, uLng;
         let audioReady = false;
 
-        // Initialize Audio context on first click to bypass browser restrictions
         function initAudioContext() {
             if (!audioReady) {
                 const sound = document.getElementById('alarm-sound');
-                sound.play().then(() => {
-                    sound.pause();
-                    audioReady = true;
-                }).catch(e => console.log("Waiting for user interaction..."));
+                sound.play().then(() => { sound.pause(); audioReady = true; }).catch(e => {});
             }
         }
 
-        // Toggle Login/Register Form
         function toggleAuthTab(type) {
             document.getElementById('login-form').classList.toggle('hidden', type === 'reg');
             document.getElementById('reg-form').classList.toggle('hidden', type === 'login');
             document.getElementById('btn-login-tab').classList.toggle('active', type === 'login');
             document.getElementById('btn-reg-tab').classList.toggle('active', type === 'reg');
+        }
+
+        function togglePassView(id, el) {
+            const input = document.getElementById(id);
+            if (input.type === "password") {
+                input.type = "text";
+                el.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = "password";
+                el.classList.replace('fa-eye-slash', 'fa-eye');
+            }
         }
 
         auth.onAuthStateChanged(user => {
@@ -164,45 +179,31 @@
         });
 
         async function handleAuth(mode) {
-            const email = mode === 'login' ? document.getElementById('email').value : document.getElementById('reg-email').value;
-            const pass = mode === 'login' ? document.getElementById('password').value : document.getElementById('reg-password').value;
-            
-            if(!email || !pass) return alert("Email နှင့် Password ထည့်ပါ");
-
-            try { 
-                await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-                if(mode === 'login') {
-                    await auth.signInWithEmailAndPassword(email, pass); 
-                } else {
-                    await auth.createUserWithEmailAndPassword(email, pass);
-                    alert("အကောင့်ဖွင့်ပြီးပါပြီ");
-                }
-            } 
-            catch (err) { alert(err.message); }
+            if(mode === 'login') {
+                const email = document.getElementById('email').value;
+                const pass = document.getElementById('password').value;
+                if(!email || !pass) return alert("Email နှင့် Password ထည့်ပါ");
+                try { await auth.signInWithEmailAndPassword(email, pass); } catch (err) { alert(err.message); }
+            } else {
+                const email = document.getElementById('reg-email').value;
+                const pass = document.getElementById('reg-password').value;
+                const confirm = document.getElementById('reg-confirm').value;
+                if(!email || !pass) return alert("အချက်အလက်များ ပြည့်စုံစွာထည့်ပါ");
+                if(pass !== confirm) return alert("Password မတူညီပါ!");
+                try { await auth.createUserWithEmailAndPassword(email, pass); alert("အကောင့်ဖွင့်ပြီးပါပြီ"); } catch (err) { alert(err.message); }
+            }
         }
 
         function initApp() {
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
-            
             if (!map) {
                 map = L.map('map', { zoomControl: false, attributionControl: false }).setView([9.5334, 99.9352], 16);
                 L.tileLayer(styles[0]).addTo(map);
-
-                const userIcon = L.divIcon({
-                    html: `<div class="user-loc-container"><div class="user-dot"></div><div class="user-arrow"></div></div>`,
-                    className: '', iconSize: [24, 24], iconAnchor: [12, 12]
-                });
-
-                // Long Press Map
+                const userIcon = L.divIcon({ html: `<div class="user-loc-container"><div class="user-dot"></div><div class="user-arrow"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+                
                 let hold;
-                map.on('mousedown touchstart', (e) => {
-                    hold = setTimeout(() => {
-                        postPin(e.latlng.lat, e.latlng.lng);
-                        if(navigator.vibrate) navigator.vibrate(100);
-                        alert("Pin တင်ပြီးပါပြီ");
-                    }, 2500);
-                });
+                map.on('mousedown touchstart', (e) => { hold = setTimeout(() => { postPin(e.latlng.lat, e.latlng.lng); alert("Pin တင်ပြီးပါပြီ"); }, 2500); });
                 map.on('mouseup touchend mousemove touchmove', () => clearTimeout(hold));
 
                 navigator.geolocation.watchPosition(pos => {
@@ -211,33 +212,17 @@
                     if(!uMarker) {
                         uMarker = L.marker([uLat, uLng], { icon: userIcon }).addTo(map);
                         uCircle = L.circle([uLat, uLng], { radius: rad, color: '#00d2ff', weight: 1.5, fillOpacity: 0.1 }).addTo(map);
-                    } else {
-                        uMarker.setLatLng([uLat, uLng]);
-                        uCircle.setLatLng([uLat, uLng]);
-                    }
+                    } else { uMarker.setLatLng([uLat, uLng]); uCircle.setLatLng([uLat, uLng]); }
                     checkDist(uLat, uLng);
                 }, null, { enableHighAccuracy: true });
-
-                setupHoldButton();
-                syncAll();
+                setupHoldButton(); syncAll();
             }
         }
 
         function setupHoldButton() {
             const btnWrapper = document.getElementById('hold-trigger');
             const prog = document.getElementById('hold-progress');
-            
-            const start = (e) => {
-                e.preventDefault();
-                let startT = Date.now();
-                progInterval = setInterval(() => {
-                    prog.style.width = Math.min(100, ((Date.now() - startT) / 3000) * 100) + '%';
-                }, 50);
-                pressTimer = setTimeout(() => {
-                    postPin(uLat, uLng);
-                    stop();
-                }, 3000);
-            };
+            const start = (e) => { e.preventDefault(); let startT = Date.now(); progInterval = setInterval(() => { prog.style.width = Math.min(100, ((Date.now() - startT) / 3000) * 100) + '%'; }, 50); pressTimer = setTimeout(() => { postPin(uLat, uLng); stop(); }, 3000); };
             const stop = () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; };
             btnWrapper.onmousedown = btnWrapper.ontouchstart = start;
             btnWrapper.onmouseup = btnWrapper.ontouchend = stop;
@@ -261,10 +246,7 @@
             if(alertLoop) return;
             const sound = document.getElementById('alarm-sound');
             sound.play().catch(() => {});
-            alertLoop = setInterval(() => {
-                sound.play().catch(() => {});
-                if(navigator.vibrate) navigator.vibrate([500, 200, 500]);
-            }, 3000);
+            alertLoop = setInterval(() => { sound.play().catch(() => {}); if(navigator.vibrate) navigator.vibrate([500, 200, 500]); }, 3000);
         }
 
         function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }
@@ -272,11 +254,9 @@
         function syncAll() {
             db.ref('pins').on('value', snap => {
                 const data = snap.val(); const list = document.getElementById('pin-list'); list.innerHTML = "";
-                const now = Date.now();
-                for(let k in markers) map.removeLayer(markers[k]); markers = {};
                 for(let id in data) {
                     const p = data[id];
-                    if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
+                    if(Date.now() > p.expires) { db.ref('pins/'+id).remove(); continue; }
                     markers[id] = L.marker([p.lat, p.lng], { icon: L.divIcon({ html: '👮', className: 'p-icon', iconSize: [30, 30] }) }).addTo(map);
                     list.innerHTML += `<div class="list-item"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
                 }
@@ -294,8 +274,7 @@
         function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
         function sendChat() {
             const i = document.getElementById('chat-input'); if(!i.value) return;
-            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value });
-            i.value = "";
+            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value }); i.value = "";
         }
         function showTab(t) {
             document.getElementById('list-tab').classList.toggle('hidden', t !== 'list');
