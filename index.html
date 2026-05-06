@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Rotation & Arrow Fix</title>
+    <title>Samui Safe Ride - Full Functional Fix</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -17,7 +17,7 @@
         body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; background: #121212; }
         
-        /* Auth Styles */
+        /* Auth */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
         .input-group { position: relative; width: 100%; margin: 10px 0; }
@@ -28,7 +28,7 @@
         .auth-tab { flex: 1; padding: 10px; color: #888; font-weight: bold; cursor: pointer; }
         .auth-tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
 
-        /* User Marker & Arrow */
+        /* Marker & Arrow */
         .user-loc-container { position: relative; width: 30px; height: 30px; transition: transform 0.1s linear; }
         .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 7px; left: 7px; z-index: 2; box-shadow: 0 0 10px var(--primary); }
         .user-arrow { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 18px solid #00d2ff; z-index: 1; }
@@ -41,15 +41,15 @@
         .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; }
         .active-follow { color: var(--primary); border: 2px solid var(--primary); }
 
-        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; }
+        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(82%); transition: 0.3s; }
         .bottom-panel.active { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
+        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }
         
         .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 15px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }
-        .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); transition: width 0.1s linear; }
+        .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); }
         .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
         .hidden { display: none !important; }
-        .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; }
+        .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; text-align: left; }
     </style>
 </head>
 <body oncontextmenu="return false;">
@@ -80,13 +80,13 @@
             <div class="bottom-panel pointer-all" id="main-panel">
                 <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>
                 <div class="hold-btn-wrapper"><div id="hold-progress" class="hold-progress-bar"></div><button id="hold-btn" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button></div>
-                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အကွာအဝေး: <span id="rad-txt">200</span>m</label><input type="range" min="100" max="1500" step="50" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>
-                <div id="list-tab"><div id="pin-list" style="max-height:180px; overflow-y:auto;"></div></div>
+                <div style="margin-bottom: 10px;"><label style="font-size:12px;">အချက်ပေးအကွာအဝေး: <span id="rad-txt">200</span>m</label><input type="range" min="100" max="1500" step="50" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>
+                <div id="pin-list" style="max-height:200px; overflow-y:auto; border-top:1px solid #333;"></div>
             </div>
         </div>
     </div>
 
-    <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
+    <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto" loop></audio>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
@@ -107,6 +107,7 @@
 
         let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, isFollowing = true;
         let uLat, uLng, currentAuthMode = 'login', sIdx = 0, currentHeading = 0;
+        let isAlerting = false;
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
         // --- Auth Logic ---
@@ -139,44 +140,32 @@
             else { document.getElementById('auth-section').classList.remove('hidden'); }
         });
 
-        // --- Main App ---
+        // --- Main Logic ---
         function initApp() {
             if(map) return;
-            // Rotate Enable လုပ်ထားသော Map
-            map = L.map('map', { 
-                zoomControl: false, 
-                attributionControl: false, 
-                rotate: true, 
-                touchRotate: true 
-            }).setView([9.53, 99.93], 15);
+            map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.53, 99.93], 15);
             L.tileLayer(styles[0]).addTo(map);
 
-            // ၃ စက္ကန့်ဖိပြီး Pin ချခြင်း (Long Press Map)
-            let mTimer;
-            map.on('mousedown touchstart', (e) => {
-                mTimer = setTimeout(() => { postPin(e.latlng.lat, e.latlng.lng); if(navigator.vibrate) navigator.vibrate(100); }, 3000);
+            // မြေပုံကို ဆွဲလိုက်ရင် ကိုယ့်နေရာကို လိုက်ပြနေတာ ခေတ္တပိတ်မည်
+            map.on('dragstart zoomstart', () => {
+                isFollowing = false;
+                document.getElementById('follow-btn').classList.remove('active-follow');
             });
-            map.on('mouseup touchend move', () => clearTimeout(mTimer));
 
-            // Direction Arrow ပါသော Icon
             const userIcon = L.divIcon({
                 html: `<div id="user-arrow-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`,
                 className: '', iconSize: [30, 30], iconAnchor: [15, 15]
             });
 
-            // Compass (Heading) သိရှိစေရန်
             if (window.DeviceOrientationEvent) {
                 window.addEventListener('deviceorientationabsolute', (e) => {
-                    if (e.alpha !== null) {
-                        currentHeading = 360 - e.alpha;
-                        updateArrow();
-                    }
+                    if (e.alpha !== null) { currentHeading = 360 - e.alpha; updateArrow(); }
                 }, true);
             }
 
             navigator.geolocation.watchPosition(pos => {
                 uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                if(isFollowing) map.setView([uLat, uLng]);
+                if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: true});
                 if(!uMarker) {
                     uMarker = L.marker([uLat, uLng], {icon: userIcon}).addTo(map);
                     uCircle = L.circle([uLat, uLng], {radius: rad, color:'#00d2ff', fillOpacity:0.1, weight:1}).addTo(map);
@@ -184,6 +173,13 @@
                 updateArrow();
                 checkDist();
             }, null, {enableHighAccuracy:true});
+
+            // Map Long Press
+            let mTimer;
+            map.on('mousedown touchstart', (e) => {
+                mTimer = setTimeout(() => { postPin(e.latlng.lat, e.latlng.lng); if(navigator.vibrate) navigator.vibrate(100); alert("📍 Pin ချပြီးပါပြီ"); }, 3000);
+            });
+            map.on('mouseup touchend move', () => clearTimeout(mTimer));
 
             setupHoldBtn();
             syncData();
@@ -203,7 +199,7 @@
             btn.onmousedown = btn.ontouchstart = (e) => {
                 e.preventDefault(); st = Date.now();
                 int = setInterval(() => { prog.style.width = Math.min(100, ((Date.now()-st)/3000)*100)+'%'; }, 50);
-                t = setTimeout(() => { postPin(uLat, uLng); clearInterval(int); prog.style.width = '0%'; alert("📍 Pin ချပြီးပါပြီ"); }, 3000);
+                t = setTimeout(() => { postPin(uLat, uLng); clearInterval(int); prog.style.width = '0%'; if(navigator.vibrate) navigator.vibrate(100); alert("👮 Pin ချပြီးပါပြီ"); }, 3000);
             };
             btn.onmouseup = btn.ontouchend = () => { clearInterval(int); clearTimeout(t); prog.style.width = '0%'; };
         }
@@ -215,30 +211,47 @@
 
         function syncData() {
             db.ref('pins').on('value', snap => {
-                const data = snap.val(), list = document.getElementById('pin-list'); list.innerHTML = "";
+                const data = snap.val(), list = document.getElementById('pin-list');
+                list.innerHTML = ""; const now = Date.now();
                 for(let k in markers) map.removeLayer(markers[k]); markers = {};
                 for(let id in data) {
                     const p = data[id];
+                    if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
                     markers[id] = L.marker([p.lat, p.lng], {icon: L.divIcon({html:'👮', className:'', iconSize:[30,30]})}).addTo(map);
-                    list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false;"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
+                    list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false; document.getElementById('follow-btn').classList.remove('active-follow');"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString()}</span></div>`;
                 }
             });
         }
 
         function checkDist() {
-            if(!bell || !uLat) return;
+            if(!uLat) return;
             db.ref('pins').once('value', snap => {
                 const pins = snap.val(); let near = false;
                 for(let id in pins) { if(map.distance([uLat, uLng], [pins[id].lat, pins[id].lng]) < rad) { near = true; break; } }
-                if(near) { document.getElementById('alarm-sound').play().catch(()=>{}); }
-                else { document.getElementById('alarm-sound').pause(); }
+                
+                const sound = document.getElementById('alarm-sound');
+                if(near && bell) {
+                    if(!isAlerting) {
+                        isAlerting = true;
+                        sound.play().catch(()=>{});
+                        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+                    }
+                } else {
+                    isAlerting = false;
+                    sound.pause();
+                    sound.currentTime = 0;
+                }
             });
         }
 
         function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
-        function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell?'fas fa-bell':'fas fa-bell-slash'; }
+        function toggleBell() { 
+            bell = !bell; 
+            document.getElementById('bell-icon').className = bell?'fas fa-bell':'fas fa-bell-slash'; 
+            if(!bell) { isAlerting = false; const s = document.getElementById('alarm-sound'); s.pause(); s.currentTime = 0; }
+        }
         function nextMap() { sIdx = (sIdx+1)%styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
-        function recenter() { isFollowing = true; map.setView([uLat, uLng], 17); if(map.setBearing) map.setBearing(0); }
+        function recenter() { isFollowing = true; document.getElementById('follow-btn').classList.add('active-follow'); map.setView([uLat, uLng], 17); if(map.setBearing) map.setBearing(0); }
         function logout() { auth.signOut().then(()=>location.reload()); }
     </script>
 </body>
