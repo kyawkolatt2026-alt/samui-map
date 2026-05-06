@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - 360 Full Rotation</title>
+    <title>Samui Safe Ride - Fixed UI</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -14,29 +14,30 @@
     <style>
         :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; --success: #2ed573; }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+        body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; background: #121212; }
         
-        /* UI Overlay */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
-        .top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; }
+        
+        /* Logout ခလုတ် ကွယ်မနေစေရန် အပေါ်မှ 25px ခွာထားပါသည် */
+        .top-bar { position: absolute; top: 25px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: flex-start; }
         .side-btns { display: flex; flex-direction: column; gap: 12px; }
-        .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: none; font-size: 20px; }
+        .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; }
         .active-follow { color: var(--primary); border: 2px solid var(--primary); }
 
-        /* Auth Styles */
+        /* User Marker Arrow */
+        .user-loc-container { position: relative; width: 24px; height: 24px; }
+        .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 4px; left: 4px; z-index: 2; box-shadow: 0 0 10px var(--primary); }
+        .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }
+
+        /* Auth UI */
         .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .auth-card { background: var(--card); padding: 35px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
         .input-box { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; user-select: text !important; }
         .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; }
 
-        /* User Marker with Direction Arrow */
-        .user-loc-container { position: relative; width: 24px; height: 24px; }
-        .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 4px; left: 4px; z-index: 2; box-shadow: 0 0 10px var(--primary); }
-        .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }
-
-        /* Panels */
+        /* Bottom Panel */
         .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; }
         .bottom-panel.active { transform: translateY(0); }
         .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; }
@@ -132,12 +133,12 @@
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
             
-            // Rotation Plugin အလုပ်လုပ်စေရန် map initialization ကိုပြင်ထားပါတယ်
+            // ၃၆၀ ဒီဂရီ လှည့်လို့ရအောင် rotate plugin ကို initialization မှာ သုံးထားပါတယ်
             map = L.map('map', { 
                 zoomControl: false, 
                 attributionControl: false,
-                rotate: true, // Rotation ပွင့်ရန်
-                touchRotate: true // လက်နှစ်ချောင်းနဲ့ လှည့်လို့ရရန်
+                rotate: true, 
+                touchRotate: true 
             }).setView([9.5334, 99.9352], 16);
             
             L.tileLayer(styles[0]).addTo(map);
@@ -166,7 +167,6 @@
                     uCircle.setLatLng([uLat, uLng]);
                 }
 
-                // မြေပုံလှည့်ထားရင်လည်း Arrow က Direction မှန်နေစေရန်
                 const el = document.getElementById('user-icon-rotate');
                 if(el) {
                     const currentMapRotation = map.getBearing ? map.getBearing() : 0;
@@ -183,7 +183,7 @@
             isFollowing = true;
             document.getElementById('follow-btn').classList.add('active-follow');
             if(uLat) map.setView([uLat, uLng], 17);
-            if(map.setBearing) map.setBearing(0); // မြေပုံကို မြောက်ဘက်တည့်တည့် ပြန်ဖြစ်စေခြင်း
+            if(map.setBearing) map.setBearing(0); 
         }
 
         function setupActions() {
