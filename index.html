@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Fixed Following</title>
+    <title>Samui Safe Ride - Fixed Alarm & Follow</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -60,7 +60,7 @@
             <h2 style="color:var(--primary); margin-bottom: 20px;">SAMUI SAFE RIDE</h2>
             <input type="email" id="email" class="input-box" placeholder="Email Address" style="margin-bottom:10px;">
             <input type="password" id="password" class="input-box" placeholder="Password">
-            <button class="pointer-all btn-auth" onclick="handleAuth()" style="width:100%">အကောင့်ဝင်ရန်</button>
+            <button class="pointer-all btn-auth" onclick="handleAuth()">အကောင့်ဝင်ရန်</button>
         </div>
     </div>
 
@@ -134,11 +134,15 @@
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);
             L.tileLayer(styles[0]).addTo(map);
 
-            // --- ပြင်ဆင်ထားသော အပိုင်း- မြေပုံကို ဆွဲလိုက်တာနဲ့ Follow စနစ် ပိတ်သွားမည် ---
             map.on('movestart', (e) => {
-                if (e.hard) return; // Code အရ ရွှေ့တာဆိုရင် မပိတ်ပါ
+                if (e.hard) return;
                 isFollowing = false;
                 document.getElementById('follow-btn').classList.remove('active-follow');
+            });
+
+            // မြေပုံပေါ် ကြိုက်တဲ့နေရာထောက်ပြီး Pin ချသည့်စနစ် (Alarm ပြန်စစ်ရန် function ပါဝင်သည်)
+            map.on('contextmenu', (e) => {
+                if(confirm("ဤနေရာတွင် Pin ထောက်မည်လား?")) postPin(e.latlng.lat, e.latlng.lng);
             });
 
             if (window.DeviceOrientationEvent) {
@@ -147,7 +151,6 @@
 
             navigator.geolocation.watchPosition(pos => {
                 uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                // Follow Mode အဖွင့်အပိတ်ကို ဒီနေရာမှာ စစ်ဆေးပါသည်
                 if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: true});
                 
                 const icon = L.divIcon({ html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
@@ -191,7 +194,9 @@
 
         function postPin(lat, lng) {
             const id = Date.now();
-            db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: auth.currentUser.email.split('@')[0] });
+            const user = auth.currentUser ? auth.currentUser.email.split('@')[0] : "User";
+            db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: user })
+            .then(() => { if(uLat) checkDist(uLat, uLng); }); // Pin ချပြီးရင် Alarm ပြန်စစ်မည်
         }
 
         function syncAll() {
@@ -223,7 +228,7 @@
         }
 
         function checkDist(lt, lg) {
-            if(!bell) return;
+            if(!bell) { stopAlert(); return; }
             db.ref('pins').once('value', snap => {
                 let nearby = false; const data = snap.val();
                 for(let id in data) { if(map.distance([lt, lg], [data[id].lat, data[id].lng]) < rad) { nearby = true; break; } }
