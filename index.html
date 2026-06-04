@@ -134,13 +134,12 @@
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);
             L.tileLayer(styles[0]).addTo(map);
 
-            map.on('movestart', (e) => {
-                if (e.hard) return;
+            // User က မြေပုံကို ကိုယ်တိုင် ဆွဲရွှေ့လိုက်မှသာ Follow ကို ပိတ်ရန် (ပိုမိုသေချာစေရန် dragstart ကို သုံးထားသည်)
+            map.on('dragstart', () => {
                 isFollowing = false;
                 document.getElementById('follow-btn').classList.remove('active-follow');
             });
 
-            // မြေပုံပေါ် ကြိုက်တဲ့နေရာထောက်ပြီး Pin ချသည့်စနစ် (Alarm ပြန်စစ်ရန် function ပါဝင်သည်)
             map.on('contextmenu', (e) => {
                 if(confirm("ဤနေရာတွင် Pin ထောက်မည်လား?")) postPin(e.latlng.lat, e.latlng.lng);
             });
@@ -151,7 +150,9 @@
 
             navigator.geolocation.watchPosition(pos => {
                 uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: true});
+                
+                // ပြင်ဆင်ချက်- ကား/ဆိုင်ကယ် မောင်းနေစဉ် Animation ကြောင့် မြေပုံ တန့်မသွားစေရန် animate: false ထားပြီး ချက်ချင်းရွှေ့ခိုင်းထားသည်
+                if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: false});
                 
                 const icon = L.divIcon({ html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
                 if(!uMarker) {
@@ -159,7 +160,7 @@
                     uCircle = L.circle([uLat, uLng], { radius: rad, color: '#00d2ff', weight: 1.5, fillOpacity: 0.1 }).addTo(map);
                 } else { uMarker.setLatLng([uLat, uLng]); uCircle.setLatLng([uLat, uLng]); }
                 updateRot(); checkDist(uLat, uLng);
-            }, null, { enableHighAccuracy: true });
+            }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }); // ပိုမိုတိကျမြန်ဆန်သော GPS တည်နေရာရရှိရန် parameter များဖြည့်စွက်ထားသည်
 
             setupActions(); syncAll();
         }
@@ -196,7 +197,7 @@
             const id = Date.now();
             const user = auth.currentUser ? auth.currentUser.email.split('@')[0] : "User";
             db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: user })
-            .then(() => { if(uLat) checkDist(uLat, uLng); }); // Pin ချပြီးရင် Alarm ပြန်စစ်မည်
+            .then(() => { if(uLat) checkDist(uLat, uLng); });
         }
 
         function syncAll() {
