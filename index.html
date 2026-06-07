@@ -51,9 +51,28 @@
         .tab-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
         .hidden { display: none !important; }
         .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #333; cursor: pointer; }
+
+        /* Custom Pin Confirmation Modal */
+        .custom-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .custom-modal-card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #333; }
+        .custom-modal-text { font-size: 16px; color: white; margin-bottom: 25px; }
+        .custom-modal-btns { display: flex; justify-content: space-between; gap: 15px; }
+        .custom-modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-cancel { background: #333; color: #aaa; }
+        .btn-confirm { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
+
+    <div id="pin-modal" class="custom-modal-overlay hidden">
+        <div class="custom-modal-card">
+            <div class="custom-modal-text">ဤနေရာတွင် Pin ထောက်မည်လား?</div>
+            <div class="custom-modal-btns">
+                <button class="custom-modal-btn btn-cancel" onclick="closePinModal()">Cancel</button>
+                <button class="custom-modal-btn btn-confirm" id="modal-confirm-btn">OK</button>
+            </div>
+        </div>
+    </div>
 
     <div id="auth-section" class="auth-overlay hidden">
         <div class="auth-card">
@@ -117,6 +136,7 @@
 
         let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, alertLoop = null;
         let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;
+        let pendingLat, pendingLng; // Pin တည်နေရာယာယီသိမ်းရန် Variable များ
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
         auth.onAuthStateChanged((user) => { if (user) initApp(); else document.getElementById('auth-section').classList.remove('hidden'); });
@@ -134,14 +154,16 @@
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);
             L.tileLayer(styles[0]).addTo(map);
 
-            // User က မြေပုံကို ကိုယ်တိုင် ဆွဲရွှေ့လိုက်မှသာ Follow ကို ပိတ်ရန် (ပိုမိုသေချာစေရန် dragstart ကို သုံးထားသည်)
             map.on('dragstart', () => {
                 isFollowing = false;
                 document.getElementById('follow-btn').classList.remove('active-follow');
             });
 
+            // Browser confirm နေရာတွင် Custom Modal ပွင့်ရန် ပြောင်းလဲထားပါသည်
             map.on('contextmenu', (e) => {
-                if(confirm("ဤနေရာတွင် Pin ထောက်မည်လား?")) postPin(e.latlng.lat, e.latlng.lng);
+                pendingLat = e.latlng.lat;
+                pendingLng = e.latlng.lng;
+                document.getElementById('pin-modal').classList.remove('hidden');
             });
 
             if (window.DeviceOrientationEvent) {
@@ -151,7 +173,6 @@
             navigator.geolocation.watchPosition(pos => {
                 uLat = pos.coords.latitude; uLng = pos.coords.longitude;
                 
-                // ပြင်ဆင်ချက်- ကား/ဆိုင်ကယ် မောင်းနေစဉ် Animation ကြောင့် မြေပုံ တန့်မသွားစေရန် animate: false ထားပြီး ချက်ချင်းရွှေ့ခိုင်းထားသည်
                 if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: false});
                 
                 const icon = L.divIcon({ html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
@@ -160,9 +181,9 @@
                     uCircle = L.circle([uLat, uLng], { radius: rad, color: '#00d2ff', weight: 1.5, fillOpacity: 0.1 }).addTo(map);
                 } else { uMarker.setLatLng([uLat, uLng]); uCircle.setLatLng([uLat, uLng]); }
                 updateRot(); checkDist(uLat, uLng);
-            }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }); // ပိုမိုတိကျမြန်ဆန်သော GPS တည်နေရာရရှိရန် parameter များဖြည့်စွက်ထားသည်
+            }, null, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
 
-            setupActions(); syncAll();
+            setupActions(); syncAll(); setupModalEvents();
         }
 
         function updateRot() {
@@ -191,6 +212,21 @@
                 }, 3000);
             };
             btn.addEventListener('touchstart', start); btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });
+        }
+
+        // Custom Modal ပိတ်ရန် Function
+        function closePinModal() {
+            document.getElementById('pin-modal').classList.add('hidden');
+        }
+
+        // Modal ရဲ့ OK ခလုတ်နှိပ်ခြင်းအား ဖမ်းယူရန်
+        function setupModalEvents() {
+            document.getElementById('modal-confirm-btn').addEventListener('click', () => {
+                if (pendingLat && pendingLng) {
+                    postPin(pendingLat, pendingLng);
+                }
+                closePinModal();
+            });
         }
 
         function postPin(lat, lng) {
