@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Samui Safe Ride - Fixed Alarm & Follow</title>
+    <title>Samui Safe Ride - Fixed Smooth Auth Tab</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -12,24 +12,54 @@
     <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 
     <style>
-        :root { --primary: #00d2ff; --dark: #121212; --card: #1e1e1e; --danger: #ff4757; --success: #2ed573; }
+        :root { 
+            --primary: #00d2ff; 
+            --primary-grad: linear-gradient(135deg, #00d2ff 0%, #0072ff 100%);
+            --dark-bg: #0a0f1d; 
+            --card-bg: rgba(30, 41, 59, 0.7); 
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --danger: #ff4757; 
+            --success: #2ed573; 
+        }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: sans-serif; margin: 0; background: var(--dark); color: white; overflow: hidden; touch-action: none; user-select: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: var(--dark-bg); color: white; overflow: hidden; touch-action: none; user-select: none; }
         #map { height: 100vh; width: 100vw; z-index: 1; background: #121212; }
         
-        /* Auth UI */
-        .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; }
-        .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; outline: none; font-size: 16px; user-select: text !important; }
-        .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 15px; cursor: pointer; pointer-events: all; }
+        /* Modern Auth Overlay & Card */
+        .auth-overlay { position: fixed; inset: 0; background: radial-gradient(circle at center, #1e293b 0%, #0a0f1d 100%); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(10px); transition: 0.4s ease-in-out; }
+        .auth-card { background: var(--card-bg); padding: 35px 25px; border-radius: 30px; width: 100%; max-width: 390px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
+        .auth-card h2 { font-size: 24px; font-weight: 800; letter-spacing: 1px; margin-top: 0; margin-bottom: 20px; background: var(--primary-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        /* Modern Tab Selector inside Card */
+        .auth-tabs { display: flex; background: rgba(15, 23, 42, 0.8); padding: 5px; border-radius: 14px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05); }
+        .auth-tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: #94a3b8; font-weight: 700; font-size: 14px; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .auth-tab-btn.active { background: var(--primary-grad); color: white; box-shadow: 0 4px 15px rgba(0, 114, 255, 0.3); }
 
-        /* Overlay UI */
+        /* Input Styles */
+        .input-group { position: relative; margin-bottom: 16px; width: 100%; text-align: left; }
+        .input-group label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; padding-left: 4px; }
+        .input-box { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); background: var(--input-bg); color: white; outline: none; font-size: 15px; transition: 0.25s; user-select: text !important; }
+        .input-box:focus { border-color: var(--primary); box-shadow: 0 0 12px rgba(0, 210, 255, 0.2); }
+        
+        .password-container { position: relative; width: 100%; }
+        .password-container .input-box { padding-right: 48px; }
+        .toggle-password { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #64748b; z-index: 10; font-size: 16px; }
+        .toggle-password:hover { color: var(--primary); }
+        
+        /* Action Buttons */
+        .btn-auth { width: 100%; padding: 15px; border-radius: 14px; background: var(--primary-grad); border: none; color: white; font-weight: 700; font-size: 15px; margin-top: 15px; cursor: pointer; pointer-events: all; box-shadow: 0 8px 20px rgba(0, 114, 255, 0.3); transition: 0.2s; }
+        .btn-auth:active { transform: scale(0.98); }
+
+        .remember-container { display: flex; align-items: center; gap: 10px; margin-top: 15px; font-size: 13px; color: #94a3b8; text-align: left; justify-content: flex-start; padding-left: 4px; }
+        .remember-container input { cursor: pointer; width: 18px; height: 18px; border-radius: 6px; accent-color: var(--primary); }
+
+        /* Overlay UI Buttons */
         .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }
         .pointer-all { pointer-events: all; }
         .top-left-bar { position: absolute; top: 45px; left: 15px; display: flex; flex-direction: column; gap: 15px; }
         .top-right-bar { position: absolute; top: 45px; right: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; cursor: pointer; }
-        .active-follow { color: var(--primary); border: 2px solid var(--primary); box-shadow: 0 0 15px var(--primary); }
+        .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: #1e293b; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); font-size: 18px; cursor: pointer; }
+        .active-follow { color: var(--primary); border: 2px solid var(--primary); box-shadow: 0 0 15px rgba(0, 210, 255, 0.4); }
 
         /* User Marker */
         .user-loc-container { position: relative; width: 24px; height: 24px; }
@@ -37,29 +67,29 @@
         .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }
 
         /* Bottom Panel */
-        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; }
+        .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,41,59,0.96); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; border-top: 1px solid rgba(255,255,255,0.05); }
         .bottom-panel.active { transform: translateY(0); }
-        .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }
+        .panel-handle { width: 50px; height: 5px; background: #475569; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }
         
         .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 15px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }
         .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); }
         .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }
         
-        #chat-msgs { height: 180px; overflow-y: auto; background: #151515; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 10px; }
-        .tab-nav { display: flex; border-bottom: 1px solid #333; margin-bottom: 10px; }
-        .tab-item { flex: 1; text-align: center; padding: 12px; color: #888; font-weight: bold; cursor: pointer; }
+        #chat-msgs { height: 180px; overflow-y: auto; background: #0f172a; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 10px; }
+        .tab-nav { display: flex; border-bottom: 1px solid #334155; margin-bottom: 10px; }
+        .tab-item { flex: 1; text-align: center; padding: 12px; color: #64748b; font-weight: bold; cursor: pointer; }
         .tab-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
         .hidden { display: none !important; }
-        .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #333; cursor: pointer; }
+        .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #334155; cursor: pointer; }
 
-        /* Custom Pin Confirmation Modal */
-        .custom-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .custom-modal-card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #333; }
+        /* Confirmation Modal */
+        .custom-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+        .custom-modal-card { background: #1e293b; padding: 25px; border-radius: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
         .custom-modal-text { font-size: 16px; color: white; margin-bottom: 25px; }
         .custom-modal-btns { display: flex; justify-content: space-between; gap: 15px; }
         .custom-modal-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-cancel { background: #333; color: #aaa; }
-        .btn-confirm { background: var(--primary); color: white; }
+        .btn-cancel { background: #334155; color: #cbd5e1; }
+        .btn-confirm { background: var(--primary-grad); color: white; }
     </style>
 </head>
 <body>
@@ -74,19 +104,49 @@
         </div>
     </div>
 
-    <div id="auth-section" class="auth-overlay hidden">
+    <div id="auth-section" class="auth-overlay">
         <div class="auth-card">
-            <h2 style="color:var(--primary); margin-bottom: 20px;">SAMUI SAFE RIDE</h2>
-            <input type="email" id="email" class="input-box" placeholder="Email Address" style="margin-bottom:10px;">
-            <input type="password" id="password" class="input-box" placeholder="Password">
-            <button class="pointer-all btn-auth" onclick="handleAuth()">အကောင့်ဝင်ရန်</button>
+            <h2>SAMUI SAFE RIDE</h2>
+            
+            <div class="auth-tabs">
+                <button id="tab-login-btn" class="auth-tab-btn active" onclick="switchAuthMode('login')">Login (ဝင်ရန်)</button>
+                <button id="tab-register-btn" class="auth-tab-btn" onclick="switchAuthMode('register')">Register (ဖွင့်ရန်)</button>
+            </div>
+            
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="input-box" placeholder="အသုံးပြုမည့်အမည်">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <div class="password-container">
+                    <input type="password" id="password" class="input-box" placeholder="လျှို့ဝှက်နံပါတ်">
+                    <i class="fas fa-eye toggle-password" onclick="togglePassVisibility('password', this)"></i>
+                </div>
+            </div>
+
+            <div class="input-group hidden" id="confirm-password-group">
+                <label for="confirm-password">Confirm Password</label>
+                <div class="password-container">
+                    <input type="password" id="confirm-password" class="input-box" placeholder="လျှို့ဝှက်နံပါတ် ထပ်မံရိုက်ပါ">
+                    <i class="fas fa-eye toggle-password" onclick="togglePassVisibility('confirm-password', this)"></i>
+                </div>
+            </div>
+
+            <div class="remember-container" id="remember-box">
+                <input type="checkbox" id="remember-me" checked>
+                <label for="remember-me">အကောင့်ဝင်ခြင်းကို မှတ်ထားရန်</label>
+            </div>
+            
+            <button id="submit-auth-btn" class="pointer-all btn-auth" onclick="handleSubmitAuth()">အကောင့်ဝင်ရန်</button>
         </div>
     </div>
 
     <div id="app-section" class="hidden">
         <div id="map"></div>
         <div class="overlay-ui">
-            <div class="top-left-bar"><button class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>
+            <div class="top-left-bar"><button class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt" style="color: #ff4757;"></i></button></div>
             <div class="top-right-bar">
                 <button class="pointer-all circle-btn" onclick="nextMap()"><i class="fas fa-layer-group"></i></button>
                 <button id="follow-btn" class="pointer-all circle-btn active-follow" onclick="recenter()"><i class="fas fa-location-arrow"></i></button>
@@ -108,7 +168,7 @@
                 <div id="list-tab"><div id="pin-list" style="max-height:180px; overflow-y:auto;"></div></div>
                 <div id="chat-tab" class="hidden">
                     <div id="chat-msgs"></div>
-                    <div style="display:flex; gap:8px;"><input type="text" id="chat-input" class="input-box" style="margin:0; height:45px;" placeholder="စာရေးရန်..."><button onclick="sendChat()" style="background:var(--primary); border:none; width:60px; color:white; border-radius:12px;"><i class="fas fa-paper-plane"></i></button></div>
+                    <div style="display:flex; gap:8px;"><input type="text" id="chat-input" class="input-box" style="margin:0; height:45px;" placeholder="စာရေးရန်..."><button onclick="sendChat()" style="background:var(--primary-grad); border:none; width:60px; color:white; border-radius:12px;"><i class="fas fa-paper-plane"></i></button></div>
                 </div>
             </div>
         </div>
@@ -117,7 +177,6 @@
     <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
 
     <script>
@@ -131,24 +190,141 @@
             appId: "1:713193724813:web:85831c39e3560eb310bbc4"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const db = firebase.database();
 
         let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, alertLoop = null;
         let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;
-        let pendingLat, pendingLng; // Pin တည်နေရာယာယီသိမ်းရန် Variable များ
+        let pendingLat, pendingLng;
+        let currentUser = null; 
+        let currentAuthMode = 'login'; // 'login' သို့မဟုတ် 'register' ခြေအနေမှတ်ရန်
         const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 
-        auth.onAuthStateChanged((user) => { if (user) initApp(); else document.getElementById('auth-section').classList.remove('hidden'); });
+        // Session စစ်ဆေးခြင်း
+        window.onload = function() {
+            const savedSession = localStorage.getItem('is_logged_in');
+            const savedUser = localStorage.getItem('active_user');
 
-        async function handleAuth() {
-            const e = document.getElementById('email').value, p = document.getElementById('password').value;
-            try { await auth.signInWithEmailAndPassword(e, p); } catch (err) { alert(err.message); }
+            if (savedSession === "true" && savedUser) {
+                currentUser = savedUser;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('app-section').classList.remove('hidden');
+                initApp();
+            } else {
+                showAuthUI();
+                const rememberedUser = localStorage.getItem('remembered_user');
+                const rememberedPass = localStorage.getItem('remembered_password');
+                if(rememberedUser && rememberedPass) {
+                    document.getElementById('username').value = rememberedUser;
+                    document.getElementById('password').value = rememberedPass;
+                }
+            }
+        };
+
+        // UI ကို Login / Register အပြန်အလှန်ပြောင်းပေးမည့် ခလုတ်လုပ်ဆောင်ချက်
+        function switchAuthMode(mode) {
+            currentAuthMode = mode;
+            const loginTab = document.getElementById('tab-login-btn');
+            const registerTab = document.getElementById('tab-register-btn');
+            const confirmGroup = document.getElementById('confirm-password-group');
+            const submitBtn = document.getElementById('submit-auth-btn');
+            const rememberBox = document.getElementById('remember-box');
+
+            if (mode === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                confirmGroup.classList.add('hidden');
+                rememberBox.classList.remove('hidden');
+                submitBtn.innerText = "အကောင့်ဝင်ရန်";
+            } else {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                confirmGroup.classList.remove('hidden');
+                rememberBox.classList.add('hidden');
+                submitBtn.innerText = "အကောင့်အသစ်ဆောက်မည်";
+            }
+        }
+
+        function togglePassVisibility(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if(input.type === "password") {
+                input.type = "text";
+                icon.className = "fas fa-eye-slash toggle-password";
+            } else {
+                input.type = "password";
+                icon.className = "fas fa-eye toggle-password";
+            }
+        }
+
+        // ခလုတ်နှိပ်လိုက်လျှင် လက်ရှိ Mode အလိုက် ခွဲခြားအလုပ်လုပ်ပေးမည့် စနစ်သစ်
+        function handleSubmitAuth() {
+            if (currentAuthMode === 'login') {
+                handleLogin();
+            } else {
+                handleRegister();
+            }
+        }
+
+        // Login သီးသန့်လုပ်ဆောင်ချက်
+        function handleLogin() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            if(!u || !p) { alert("Username နှင့် Password ကို ဖြည့်သွင်းပါ"); return; }
+            
+            db.ref('users/' + u.toLowerCase()).once('value', snap => {
+                const userData = snap.val();
+                if(userData && userData.password === p) {
+                    currentUser = u;
+                    localStorage.setItem('is_logged_in', 'true');
+                    localStorage.setItem('active_user', u);
+
+                    if(document.getElementById('remember-me').checked) {
+                        localStorage.setItem('remembered_user', u);
+                        localStorage.setItem('remembered_password', p);
+                    } else {
+                        localStorage.removeItem('remembered_user');
+                        localStorage.removeItem('remembered_password');
+                    }
+
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('app-section').classList.remove('hidden');
+                    initApp();
+                } else {
+                    alert("အသုံးပြုမည့်အမည် သို့မဟုတ် Password မှားယွင်းနေပါသည်။");
+                }
+            });
+        }
+
+        // Register သီးသန့်လုပ်ဆောင်ချက်
+        function handleRegister() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+            const cp = document.getElementById('confirm-password').value;
+            
+            if(!u || !p || !cp) { alert("အချက်အလက်အားလုံးကို ပြည့်စုံစွာ ဖြည့်ပေးပါ"); return; }
+            if(p !== cp) { alert("Password နှစ်ခု တူညီမှု မရှိပါ!"); return; }
+            if(u.includes('@') || u.includes('.') || u.includes('/') || u.includes('$') || u.includes('#') || u.includes('[') || u.includes(']')) {
+                alert("Username တွင် အထူးသင်္ကေတများ မပါဝင်ရပါ။"); return;
+            }
+
+            db.ref('users/' + u.toLowerCase()).once('value', snap => {
+                if(snap.exists()) {
+                    alert("ဤအမည်ဖြင့် အကောင့်ရှိနှင့်ပြီးသား ဖြစ်ပါသည်။ အခြားအမည်ပြောင်းပေးပါ။");
+                } else {
+                    db.ref('users/' + u.toLowerCase()).set({ username: u, password: p })
+                    .then(() => {
+                        alert("အကောင့်သစ် ဖွင့်လှစ်ခြင်း အောင်မြင်ပါသည်။ Login Tab သို့သွား၍ အကောင့်ဝင်နိုင်ပါပြီ။");
+                        switchAuthMode('login');
+                    }).catch(err => alert(err.message));
+                }
+            });
+        }
+
+        function showAuthUI() {
+            document.getElementById('app-section').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
         }
 
         function initApp() {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('app-section').classList.remove('hidden');
             if(map) return;
 
             map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);
@@ -159,7 +335,6 @@
                 document.getElementById('follow-btn').classList.remove('active-follow');
             });
 
-            // Browser confirm နေရာတွင် Custom Modal ပွင့်ရန် ပြောင်းလဲထားပါသည်
             map.on('contextmenu', (e) => {
                 pendingLat = e.latlng.lat;
                 pendingLng = e.latlng.lng;
@@ -172,7 +347,6 @@
 
             navigator.geolocation.watchPosition(pos => {
                 uLat = pos.coords.latitude; uLng = pos.coords.longitude;
-                
                 if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: false});
                 
                 const icon = L.divIcon({ html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
@@ -214,24 +388,20 @@
             btn.addEventListener('touchstart', start); btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });
         }
 
-        // Custom Modal ပိတ်ရန် Function
         function closePinModal() {
             document.getElementById('pin-modal').classList.add('hidden');
         }
 
-        // Modal ရဲ့ OK ခလုတ်နှိပ်ခြင်းအား ဖမ်းယူရန်
         function setupModalEvents() {
             document.getElementById('modal-confirm-btn').addEventListener('click', () => {
-                if (pendingLat && pendingLng) {
-                    postPin(pendingLat, pendingLng);
-                }
+                if (pendingLat && pendingLng) postPin(pendingLat, pendingLng);
                 closePinModal();
             });
         }
 
         function postPin(lat, lng) {
             const id = Date.now();
-            const user = auth.currentUser ? auth.currentUser.email.split('@')[0] : "User";
+            const user = currentUser ? currentUser : "User";
             db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: user })
             .then(() => { if(uLat) checkDist(uLat, uLng); });
         }
@@ -278,8 +448,7 @@
         
         function sendChat() { 
             const i = document.getElementById('chat-input'); if(!i.value.trim()) return; 
-            const now = Date.now();
-            db.ref('chats').push({ user: auth.currentUser.email.split('@')[0], txt: i.value, time: now, expires: now + (24 * 60 * 60 * 1000) }); 
+            db.ref('chats').push({ user: currentUser, txt: i.value, time: Date.now(), expires: Date.now() + (24 * 60 * 60 * 1000) }); 
             i.value = ""; 
         }
 
@@ -287,7 +456,19 @@
         function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
         function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
         function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
-        function logout() { if(confirm("Logout လုပ်မည်လား?")) auth.signOut().then(() => location.reload()); }
+        
+        // အကောင့်ထွက်လိုက်လျှင် Login UI သို့ ချောမွေ့စွာ ပြန်ပို့ပေးမည့် စနစ်သစ်
+        function logout() { 
+            if(confirm("Logout လုပ်မည်လား?")) {
+                localStorage.setItem('is_logged_in', 'false');
+                localStorage.removeItem('active_user');
+                currentUser = null;
+                
+                // စာမျက်နှာကို Reload မလုပ်ဘဲ UI များကို ချက်ချင်း Toggle လုပ်ပေးသည်
+                switchAuthMode('login');
+                showAuthUI();
+            }
+        }
     </script>
 </body>
 </html>
