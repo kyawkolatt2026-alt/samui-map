@@ -531,6 +531,7 @@
         const db = firebase.database();
 
         let map, userMarker, userCircle;
+        let alertMarkers = {}; // Track alert markers
         let currentUser = null;
         let userLat = 8.7245, userLng = 100.5933;
         let radius = 200;
@@ -664,7 +665,10 @@
         function showAuth() {
             document.getElementById('authScreen').classList.remove('hidden');
             document.getElementById('mapUI').style.display = 'none';
-            if (map) map.remove();
+            if (map) {
+                map.remove();
+                map = null;
+            }
         }
 
         function showMap() {
@@ -702,6 +706,10 @@
                     userMarker.setLatLng([userLat, userLng]);
                     userCircle.setLatLng([userLat, userLng]);
                     if (isFollowing) map.setView([userLat, userLng]);
+                }, err => {
+                    console.error("Geolocation error:", err);
+                }, {
+                    enableHighAccuracy: true
                 });
             }
 
@@ -734,6 +742,7 @@
             radius = parseInt(value);
             document.getElementById('radiusValue').textContent = radius;
             if (userCircle) userCircle.setRadius(radius);
+            updateAlertsList(); // Refresh list when radius changes
         }
 
         function toggleMapLayer() {
@@ -805,33 +814,71 @@
             setTimeout(() => audio.pause(), 2000);
         }
 
+        let currentAlertsData = {};
+
         function loadAlerts() {
             db.ref('alerts').on('value', snap => {
-                const data = snap.val() || {};
-                let html = '';
-                
-                Object.keys(data).forEach(key => {
-                    const alert = data[key];
-                    const dist = Math.sqrt(Math.pow(alert.lat - userLat, 2) + Math.pow(alert.lng - userLng, 2)) * 111;
-                    
-                    if (dist <= radius) {
-                        html += `<div class="alert-item" onclick="map.setView([${alert.lat}, ${alert.lng}], 15)">
-                            <span>${alert.user}</span>
-                            <span>${dist.toFixed(2)}km</span>
-                        </div>`;
-                    }
-                });
-                
-                document.getElementById('alertsList').innerHTML = html || '<div style="padding:12px;color:#94a3b8;">အလုံးအရင်းမရှိသေးပါ</div>';
+                currentAlertsData = snap.val() || {};
+                updateAlertsList();
+                updateAlertMarkers();
             });
         }
 
+        function updateAlertMarkers() {
+            if (!map) return;
+            
+            // Clear old markers
+            Object.values(alertMarkers).forEach(m => map.removeLayer(m));
+            alertMarkers = {};
+
+            Object.keys(currentAlertsData).forEach(key => {
+                const alert = currentAlertsData[key];
+                const marker = L.marker([alert.lat, alert.lng], {
+                    icon: L.divIcon({
+                        html: '<div style="font-size:24px;">👮</div>',
+                        className: 'custom-div-icon',
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    })
+                }).bindPopup(`<strong>${alert.user}</strong><br>ဖမ်းနေသည်`).addTo(map);
+                alertMarkers[key] = marker;
+            });
+        }
+
+        function updateAlertsList() {
+            let html = '';
+            Object.keys(currentAlertsData).forEach(key => {
+                const alert = currentAlertsData[key];
+                const dist = getDistance(alert.lat, alert.lng, userLat, userLng);
+                
+                if (dist <= (radius / 1000) || dist < 5) { // Show within radius or within 5km for list
+                    html += `<div class="alert-item" onclick="map.setView([${alert.lat}, ${alert.lng}], 15); alertMarkers['${key}'].openPopup();">
+                        <span>${alert.user}</span>
+                        <span>${dist.toFixed(2)}km</span>
+                    </div>`;
+                }
+            });
+            
+            document.getElementById('alertsList').innerHTML = html || '<div style="padding:12px;color:#94a3b8;">အနီးအနားတွင် ဖမ်းဆီးမှု မရှိသေးပါ</div>';
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
         function loadChats() {
-            db.ref('chats').on('value', snap => {
+            db.ref('chats').limitToLast(50).on('value', snap => {
                 const data = snap.val() || {};
                 let html = '';
                 
-                Object.keys(data).forEach(key => {
+                Object.keys(data).sort().forEach(key => {
                     const chat = data[key];
                     html += `<div class="chat-message"><strong>${chat.user}:</strong> ${chat.msg}</div>`;
                 });
