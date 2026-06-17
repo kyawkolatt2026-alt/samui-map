@@ -25,7 +25,11 @@
     .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }  
     .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }  
     .input-group { position: relative; margin-bottom: 15px; text-align: left; }
-    .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; outline: none; font-size: 16px; width: 100%; user-select: text !important; }  
+    .input-box { width: 100%; padding: 15px; padding-right: 45px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; outline: none; font-size: 16px; width: 100%; user-select: text !important; }  
+    
+    /* Password Toggle Icon */
+    .pass-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; font-size: 18px; }
+
     .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }  
     .auth-switch { margin-top: 15px; font-size: 13px; color: #aaa; cursor: pointer; }
     .auth-switch b { color: var(--primary); }
@@ -77,9 +81,13 @@
     <div class="auth-card">  
         <h2 style="color:var(--primary); margin-bottom: 25px;">SAMUI SAFE RIDE</h2>  
         
+        <!-- Login Form -->
         <div id="login-form">
             <div class="input-group"><input type="email" id="login-email" class="input-box" placeholder="Email Address"></div>
-            <div class="input-group"><input type="password" id="login-pass" class="input-box" placeholder="Password"></div>
+            <div class="input-group">
+                <input type="password" id="login-pass" class="input-box" placeholder="Password">
+                <i class="fas fa-eye pass-toggle" onclick="togglePass('login-pass', this)"></i>
+            </div>
             <div style="display:flex; justify-content: space-between; align-items:center;">
                 <label style="font-size:12px; color:#aaa;"><input type="checkbox" id="remember-me" checked> မှတ်ထားမည်</label>
                 <span class="forgot-link" onclick="switchAuth('reset')">Password မေ့နေသလား?</span>
@@ -88,15 +96,23 @@
             <div class="auth-switch" onclick="switchAuth('reg')">အကောင့်မရှိသေးဘူးလား? <b>အသစ်ဖွင့်ရန်</b></div>
         </div>
 
+        <!-- Register Form -->
         <div id="register-form" class="hidden">
             <div class="input-group"><input type="text" id="reg-user" class="input-box" placeholder="အမည် (Username)"></div>
             <div class="input-group"><input type="email" id="reg-email" class="input-box" placeholder="Email Address"></div>
-            <div class="input-group"><input type="password" id="reg-pass" class="input-box" placeholder="Password"></div>
-            <div class="input-group"><input type="password" id="reg-confirm" class="input-box" placeholder="Confirm Password"></div>
+            <div class="input-group">
+                <input type="password" id="reg-pass" class="input-box" placeholder="Password">
+                <i class="fas fa-eye pass-toggle" onclick="togglePass('reg-pass', this)"></i>
+            </div>
+            <div class="input-group">
+                <input type="password" id="reg-confirm" class="input-box" placeholder="Confirm Password">
+                <i class="fas fa-eye pass-toggle" onclick="togglePass('reg-confirm', this)"></i>
+            </div>
             <button class="btn-auth" style="background:var(--success)" onclick="handleRegister()">အကောင့်အသစ်ဖွင့်မည်</button>
             <div class="auth-switch" onclick="switchAuth('login')">အကောင့်ရှိပြီးသားလား? <b>ပြန်ဝင်ရန်</b></div>
         </div>
 
+        <!-- Forget Password -->
         <div id="reset-form" class="hidden">
             <p style="font-size:13px; color:#aaa; margin-bottom:20px;">သင့် Gmail ထဲသို့ Password ချိန်းရန် Link ပို့ပေးပါမည်။</p>
             <div class="input-group"><input type="email" id="reset-email" class="input-box" placeholder="သင့် Gmail ရိုက်ထည့်ပါ"></div>
@@ -139,6 +155,7 @@
 <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>  
 
 <script>  
+    // Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyBTH-eDZtCTz1yrczUVaovW5BXBMkx9HXo",
         authDomain: "samui-new-app.firebaseapp.com",
@@ -158,6 +175,19 @@
     let pendingLat, pendingLng;  
     const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];  
 
+    // Toggle Password View function
+    function togglePass(id, icon) {
+        const input = document.getElementById(id);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.replace("fa-eye-slash", "fa-eye");
+        }
+    }
+
+    // Auth
     auth.onAuthStateChanged((user) => { 
         if (user) initApp(); 
         else { document.getElementById('auth-section').classList.remove('hidden'); switchAuth('login'); }
@@ -167,7 +197,7 @@
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-pass').value;
         const rem = document.getElementById('remember-me').checked;
-        if(!email || !pass) return alert("Email နှင့် Password ဖြည့်ပါ");
+        if(!email || !pass) return alert("ဖြည့်စွက်ပါ");
         try { 
             await auth.setPersistence(rem ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
             await auth.signInWithEmailAndPassword(email, pass); 
@@ -193,10 +223,9 @@
         if(!email) return alert("Email ရိုက်ထည့်ပါ");
         try {
             await auth.sendPasswordResetEmail(email);
-            // Spam သတိပေးချက် ပါဝင်သော Alert
-            alert("Password Reset Link ပို့ပြီးပါပြီ။ \n\n⚠️ အရေးကြီးချက်: အီးမေးလ်ကို Inbox ထဲမှာ မတွေ့ပါက Gmail ရှိ 'Spam (အမှိုက်ပုံး)' folder ထဲတွင် ရှာပေးပါ။ တွေ့ရှိပါက 'Not Spam' ကို နှိပ်ပေးပါရန် မေတ္တာရပ်ခံအပ်ပါသည်။");
+            alert("Password Reset Link ပို့ပြီးပါပြီ။ \n\n⚠️ အရေးကြီးချက်: အီးမေးလ်ကို Inbox ထဲမှာ မတွေ့ပါက Spam folder ထဲတွင် ရှာပေးပါ။");
             switchAuth('login');
-        } catch (err) { alert("အမှားအယွင်းရှိပါသည်: " + err.message); }
+        } catch (err) { alert(err.message); }
     }
 
     function switchAuth(mode) {
@@ -206,6 +235,7 @@
         if(mode === 'reset') document.getElementById('reset-form').classList.remove('hidden');
     }
 
+    // Map & Core Logic
     function initApp() {  
         document.getElementById('auth-section').classList.add('hidden');  
         document.getElementById('app-section').classList.remove('hidden');  
