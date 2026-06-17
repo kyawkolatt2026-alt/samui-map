@@ -2,7 +2,7 @@
 <head>  
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
-    <title>Samui Safe Ride - Easy Access</title>  
+    <title>Samui Safe Ride - Official App</title>  
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">  
@@ -55,6 +55,7 @@
 </head>  
 <body>  
 
+<!-- Pin Confirmation -->
 <div id="pin-modal" class="auth-overlay hidden" style="background:rgba(0,0,0,0.6);">  
     <div class="auth-card" style="max-width:300px;">  
         <p>ဤနေရာတွင် Pin ထောက်မည်လား?</p>  
@@ -65,6 +66,7 @@
     </div>  
 </div>  
 
+<!-- Auth Screen -->
 <div id="auth-section" class="auth-overlay hidden">  
     <div class="auth-card">  
         <h2 style="color:var(--primary); margin-bottom: 25px;">SAMUI SAFE RIDE</h2>  
@@ -85,4 +87,225 @@
 
         <div id="register-form" class="hidden">
             <div class="input-group"><input type="text" id="reg-user" class="input-box" placeholder="အမည် (Username)"></div>
-            <div class="input-group"><input type
+            <div class="input-group"><input type="email" id="reg-email" class="input-box" placeholder="Email Address"></div>
+            <div class="input-group">
+                <input type="password" id="reg-pass" class="input-box" placeholder="Password">
+                <i class="fas fa-eye password-toggle" onclick="togglePassView('reg-pass')"></i>
+            </div>
+            <div class="input-group">
+                <input type="password" id="reg-confirm" class="input-box" placeholder="Confirm Password">
+                <i class="fas fa-eye password-toggle" onclick="togglePassView('reg-confirm')"></i>
+            </div>
+            <button class="btn-auth" style="background:var(--success)" onclick="handleRegister()">အကောင့်အသစ်ဖွင့်မည်</button>
+            <div class="auth-switch" onclick="switchAuth('login')">အကောင့်ရှိပြီးသားလား? <b>ပြန်ဝင်ရန်</b></div>
+        </div>
+
+        <div id="reset-form" class="hidden">
+            <p style="font-size:13px; color:#aaa; margin-bottom:20px;">သင့် Gmail ထဲသို့ Password ချိန်းရန် Link ပို့ပေးပါမည်။</p>
+            <div class="input-group"><input type="email" id="reset-email" class="input-box" placeholder="သင့် Gmail ရိုက်ထည့်ပါ"></div>
+            <button class="btn-auth" onclick="handleResetPassword()">Link ပို့ရန်</button>
+            <div class="auth-switch" onclick="switchAuth('login')"><b>ပြန်ဝင်ရန်</b></div>
+        </div>
+    </div>  
+</div>  
+
+<!-- Map Section -->
+<div id="app-section" class="hidden">  
+    <div id="map"></div>  
+    <div class="overlay-ui">  
+        <div class="top-left-bar"><button class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>  
+        <div class="top-right-bar">  
+            <button class="pointer-all circle-btn" onclick="nextMap()"><i class="fas fa-layer-group"></i></button>  
+            <button id="follow-btn" class="pointer-all circle-btn active-follow" onclick="recenter()"><i class="fas fa-location-arrow"></i></button>  
+            <button class="pointer-all circle-btn" onclick="toggleBell()"><i id="bell-icon" class="fas fa-bell"></i></button>  
+        </div>  
+        <div class="bottom-panel pointer-all" id="main-panel">  
+            <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>  
+            <div class="hold-btn-wrapper" id="hold-trigger">  
+                <div id="hold-progress" class="hold-progress-bar"></div>  
+                <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>  
+            </div>  
+            <div style="margin-bottom: 10px;"><label style="font-size:12px; color: #aaa;">အကွာအဝေး: <span id="rad-txt" style="color:var(--primary);">200</span>m</label><input type="range" min="100" max="2000" step="100" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>  
+            <div class="tab-nav">  
+                <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>  
+                <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat</div>  
+            </div>  
+            <div id="list-tab"><div id="pin-list" style="max-height:180px; overflow-y:auto;"></div></div>  
+            <div id="chat-tab" class="hidden">  
+                <div id="chat-msgs"></div>  
+                <div style="display:flex; gap:8px;"><input type="text" id="chat-input" class="input-box" style="margin:0; height:45px;" placeholder="စာရေးရန်..."><button onclick="sendChat()" style="background:var(--primary); border:none; width:60px; color:white; border-radius:12px;"><i class="fas fa-paper-plane"></i></button></div>  
+            </div>  
+        </div>  
+    </div>  
+</div>  
+
+<audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>  
+
+<script>  
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyBTH-eDZtCTz1yrczUVaovW5BXBMkx9HXo",
+        authDomain: "samui-new-app.firebaseapp.com",
+        databaseURL: "https://samui-new-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "samui-new-app",
+        storageBucket: "samui-new-app.firebasestorage.app",
+        messagingSenderId: "7594755950",
+        appId: "1:7594755950:web:cc52193fea81a0c033237f"
+    };
+
+    firebase.initializeApp(firebaseConfig);  
+    const auth = firebase.auth();  
+    const db = firebase.database();  
+
+    let map, uMarker, uCircle, rad = 200, bell = true, markers = {}, alertLoop = null;  
+    let sIdx = 0, isFollowing = true, uLat, uLng, currentHeading = 0;  
+    let pendingLat, pendingLng;  
+    const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];  
+
+    // --- AUTH LOGIC ---
+    auth.onAuthStateChanged((user) => { 
+        if (user) initApp(); 
+        else { document.getElementById('auth-section').classList.remove('hidden'); switchAuth('login'); }
+    });  
+
+    async function handleLogin() {  
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        const rem = document.getElementById('remember-me').checked;
+        if(!email || !pass) return alert("Email နှင့် Password ဖြည့်ပါ");
+        try { 
+            await auth.setPersistence(rem ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+            await auth.signInWithEmailAndPassword(email, pass); 
+        } catch (err) { alert("အကောင့်ဝင်၍မရပါ (Email/Password မှားနိုင်သည်)"); }  
+    }  
+
+    async function handleRegister() {
+        const user = document.getElementById('reg-user').value;
+        const email = document.getElementById('reg-email').value;
+        const pass = document.getElementById('reg-pass').value;
+        const confirmPass = document.getElementById('reg-confirm').value;
+        if(!user || !email || !pass) return alert("အားလုံးဖြည့်ပါ");
+        if(pass !== confirmPass) return alert("Password မတူညီပါ");
+        try {
+            const res = await auth.createUserWithEmailAndPassword(email, pass);
+            await res.user.updateProfile({ displayName: user });
+            alert("အကောင့်ဖွင့်ခြင်း အောင်မြင်ပါသည်။");
+        } catch (err) { alert(err.message); }
+    }
+
+    async function handleResetPassword() {
+        const email = document.getElementById('reset-email').value;
+        if(!email) return alert("သင့် Gmail ရိုက်ထည့်ပါ");
+        try { await auth.sendPasswordResetEmail(email); alert("Reset Link ပို့ပြီးပါပြီ။"); switchAuth('login'); } catch (err) { alert(err.message); }
+    }
+
+    function switchAuth(mode) {
+        ['login-form', 'register-form', 'reset-form'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        if(mode === 'login') document.getElementById('login-form').classList.remove('hidden');
+        if(mode === 'reg') document.getElementById('register-form').classList.remove('hidden');
+        if(mode === 'reset') document.getElementById('reset-form').classList.remove('hidden');
+    }
+
+    function togglePassView(id) {
+        const input = document.getElementById(id);
+        input.type = (input.type === 'password') ? 'text' : 'password';
+    }
+
+    // --- MAP & CORE LOGIC ---
+    function initApp() {  
+        document.getElementById('auth-section').classList.add('hidden');  
+        document.getElementById('app-section').classList.remove('hidden');  
+        if(map) return;  
+
+        map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);  
+        L.tileLayer(styles[0]).addTo(map);  
+        
+        map.on('dragstart', () => { isFollowing = false; document.getElementById('follow-btn').classList.remove('active-follow'); });
+        map.on('contextmenu', (e) => { 
+            pendingLat = e.latlng.lat; pendingLng = e.latlng.lng; 
+            document.getElementById('pin-modal').classList.remove('hidden'); 
+        });
+
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientationabsolute', (e) => { if (e.alpha !== null) currentHeading = 360 - e.alpha; updateRot(); }, true);
+        }
+
+        navigator.geolocation.watchPosition(pos => {  
+            uLat = pos.coords.latitude; uLng = pos.coords.longitude;  
+            if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: false});  
+            const icon = L.divIcon({ html: `<div id="user-icon-rotate" class="user-loc-container"><div class="user-arrow"></div><div class="user-dot"></div></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });  
+            if(!uMarker) {  
+                uMarker = L.marker([uLat, uLng], { icon: icon }).addTo(map);  
+                uCircle = L.circle([uLat, uLng], { radius: rad, color: '#00d2ff', weight: 1.5, fillOpacity: 0.1 }).addTo(map);  
+            } else { uMarker.setLatLng([uLat, uLng]); uCircle.setLatLng([uLat, uLng]); }  
+            updateRot(); checkDist(uLat, uLng);  
+        }, null, { enableHighAccuracy: true });  
+
+        setupHoldAction(); syncData();
+    }  
+
+    function updateRot() {
+        const el = document.getElementById('user-icon-rotate');
+        if(el) el.style.transform = `rotate(${currentHeading - (map.getBearing ? map.getBearing() : 0)}deg)`;
+    }
+
+    function setupHoldAction() {
+        const btn = document.getElementById('hold-trigger'), prog = document.getElementById('hold-progress'), txt = document.getElementById('main-btn-text');
+        let timer, interval;
+        const start = (e) => {
+            e.preventDefault(); let s = Date.now();
+            interval = setInterval(() => prog.style.width = Math.min(100, ((Date.now()-s)/3000)*100)+'%', 50);
+            timer = setTimeout(() => {
+                postPin(uLat, uLng); prog.style.width = '0%'; clearInterval(interval);
+                txt.innerText = "✅ တင်ပြီးပါပြီ"; setTimeout(() => txt.innerText = "👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)", 2000);
+            }, 3000);
+        };
+        const stop = () => { clearInterval(interval); clearTimeout(timer); prog.style.width = '0%'; };
+        btn.addEventListener('touchstart', start); btn.addEventListener('touchend', stop);
+    }
+
+    function postPin(lat, lng) {
+        const id = Date.now();
+        const userName = auth.currentUser.displayName || "User";
+        db.ref('pins/'+id).set({ lat, lng, time: id, expires: id+(20*60*1000), user: userName });
+    }
+
+    function syncData() {
+        db.ref('pins').on('value', snap => {
+            const data = snap.val(), now = Date.now(), list = document.getElementById('pin-list');
+            list.innerHTML = ""; for(let k in markers) map.removeLayer(markers[k]); markers = {};
+            for(let id in data) {
+                const p = data[id]; if(now > p.expires) { db.ref('pins/'+id).remove(); continue; }
+                markers[id] = L.marker([p.lat, p.lng], { icon: L.divIcon({ html: '👮', className: 'p-icon', iconSize:[30,30] }) }).addTo(map);
+                list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat},${p.lng}],17); isFollowing=false; document.getElementById('follow-btn').classList.remove('active-follow');"><span><b>${p.user}</b></span><span>${new Date(p.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false})}</span></div>`;
+            }
+        });
+        db.ref('chats').limitToLast(25).on('value', snap => {
+            const c = snap.val(), box = document.getElementById('chat-msgs'); box.innerHTML = "";
+            for(let id in c) { box.innerHTML += `<div style="margin-bottom:8px;"><b style="color:var(--primary)">${c[id].user}:</b> <span>${c[id].txt}</span></div>`; }
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    function checkDist(lt, lg) {
+        db.ref('pins').once('value', snap => {
+            let nearby = false, data = snap.val();
+            for(let id in data) { if(map.distance([lt, lg], [data[id].lat, data[id].lng]) < rad) nearby = true; }
+            if(nearby && bell) startAlert(); else stopAlert();
+        });
+    }
+
+    function startAlert() { if(!alertLoop) { document.getElementById('alarm-sound').play(); alertLoop = setInterval(() => document.getElementById('alarm-sound').play(), 3000); if(navigator.vibrate) navigator.vibrate([500,300,500]); } }
+    function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }
+    function sendChat() { const i = document.getElementById('chat-input'); if(i.value.trim()) { db.ref('chats').push({ user: auth.currentUser.displayName, txt: i.value, time: Date.now() }); i.value = ""; } }
+    function logout() { if(confirm("Logout လုပ်မည်လား?")) auth.signOut().then(() => location.reload()); }
+    function recenter() { isFollowing = true; document.getElementById('follow-btn').classList.add('active-follow'); if(uLat) map.setView([uLat, uLng], 17); if(map.setBearing) map.setBearing(0); }
+    function showTab(t) { document.getElementById('list-tab').classList.toggle('hidden', t!=='list'); document.getElementById('chat-tab').classList.toggle('hidden', t!=='chat'); document.getElementById('tab-l').classList.toggle('active', t==='list'); document.getElementById('tab-c').classList.toggle('active', t==='chat'); }
+    function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }
+    function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }
+    function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }
+    function closePinModal() { document.getElementById('pin-modal').classList.add('hidden'); }
+    document.getElementById('modal-confirm-btn').onclick = () => { if(pendingLat) postPin(pendingLat, pendingLng); closePinModal(); };
+</script>
+</body>  
+</html>
