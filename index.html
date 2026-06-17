@@ -2,7 +2,7 @@
 <head>  
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
-    <title>Samui Safe Ride - Fixed Alarm & Follow</title>  
+    <title>Samui Safe Ride - Email Verification</title>  
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">  
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>  
@@ -23,42 +23,40 @@
     .password-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; }
 
     .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }  
-    .auth-switch { margin-top: 20px; font-size: 14px; color: #aaa; cursor: pointer; }
+    .auth-switch { margin-top: 15px; font-size: 13px; color: #aaa; cursor: pointer; }
     .auth-switch b { color: var(--primary); }
     
-    .remember-box { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; font-size: 14px; color: #ccc; }
-    .remember-box input { width: 18px; height: 18px; accent-color: var(--primary); }
+    .remember-box { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; font-size: 13px; color: #ccc; }
+    .remember-box div { display: flex; align-items: center; gap: 5px; }
+    .remember-box input { width: 16px; height: 16px; accent-color: var(--primary); }
+    .forgot-link { color: var(--danger); cursor: pointer; }
 
-    /* Overlay UI */  
+    /* Verification UI */
+    .verify-msg { color: #aaa; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    .email-display { color: var(--primary); font-weight: bold; display: block; margin: 10px 0; }
+
+    /* Map Elements & Others */
     .overlay-ui { position: absolute; inset: 0; pointer-events: none; z-index: 1000; }  
     .pointer-all { pointer-events: all; }  
     .top-left-bar { position: absolute; top: 45px; left: 15px; display: flex; flex-direction: column; gap: 15px; }  
     .top-right-bar { position: absolute; top: 45px; right: 15px; display: flex; flex-direction: column; gap: 12px; }  
     .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; cursor: pointer; }  
     .active-follow { color: var(--primary); border: 2px solid var(--primary); box-shadow: 0 0 15px var(--primary); }  
-
-    /* User Marker */  
     .user-loc-container { position: relative; width: 24px; height: 24px; }  
     .user-dot { width: 16px; height: 16px; background: #00d2ff; border: 2.5px solid white; border-radius: 50%; position: absolute; top: 4px; left: 4px; z-index: 2; box-shadow: 0 0 10px var(--primary); }  
     .user-arrow { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 15px solid #00d2ff; z-index: 1; }  
-
-    /* Bottom Panel */  
     .bottom-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(30,30,30,0.98); padding: 15px; border-radius: 25px 25px 0 0; transform: translateY(80%); transition: 0.3s; }  
     .bottom-panel.active { transform: translateY(0); }  
     .panel-handle { width: 50px; height: 5px; background: #555; margin: 0 auto 15px; border-radius: 10px; cursor: pointer; }  
-      
     .hold-btn-wrapper { position: relative; width: 100%; height: 55px; margin-bottom: 15px; border-radius: 15px; overflow: hidden; background: rgba(255, 71, 87, 0.2); }  
     .hold-progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--danger); }  
     .btn-main { position: relative; width: 100%; height: 100%; background: transparent; border: none; color: white; font-weight: bold; z-index: 5; }  
-      
     #chat-msgs { height: 180px; overflow-y: auto; background: #151515; padding: 12px; border-radius: 12px; font-size: 14px; margin-bottom: 10px; }  
     .tab-nav { display: flex; border-bottom: 1px solid #333; margin-bottom: 10px; }  
     .tab-item { flex: 1; text-align: center; padding: 12px; color: #888; font-weight: bold; cursor: pointer; }  
     .tab-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }  
     .hidden { display: none !important; }  
     .list-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #333; cursor: pointer; }  
-
-    /* Modal */  
     .custom-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; }  
     .custom-modal-card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; max-width: 320px; text-align: center; border: 1px solid #333; }  
     .custom-modal-btns { display: flex; justify-content: space-between; gap: 15px; margin-top: 20px;}  
@@ -79,23 +77,21 @@
     </div>  
 </div>  
 
-<!-- Login / Register Section -->
+<!-- Auth Section -->
 <div id="auth-section" class="auth-overlay hidden">  
     <div class="auth-card">  
         <h2 style="color:var(--primary); margin-bottom: 25px;">SAMUI SAFE RIDE</h2>  
         
         <!-- Login Form -->
         <div id="login-form">
-            <div class="input-group">
-                <input type="email" id="login-email" class="input-box" placeholder="Email Address">
-            </div>
+            <div class="input-group"><input type="email" id="login-email" class="input-box" placeholder="Email Address"></div>
             <div class="input-group">
                 <input type="password" id="login-pass" class="input-box" placeholder="Password">
                 <i class="fas fa-eye password-toggle" onclick="togglePassView('login-pass')"></i>
             </div>
             <div class="remember-box">
-                <input type="checkbox" id="remember-me" checked>
-                <label for="remember-me">အကောင့်မှတ်ထားမည်</label>
+                <div><input type="checkbox" id="remember-me" checked><label for="remember-me">မှတ်ထားမည်</label></div>
+                <span class="forgot-link" onclick="switchAuth('reset')">Password မေ့နေသလား?</span>
             </div>
             <button class="btn-auth" onclick="handleLogin()">အကောင့်ဝင်ရန်</button>
             <div class="auth-switch" onclick="switchAuth('reg')">အကောင့်မရှိသေးဘူးလား? <b>အသစ်ဖွင့်ရန်</b></div>
@@ -103,12 +99,8 @@
 
         <!-- Register Form -->
         <div id="register-form" class="hidden">
-            <div class="input-group">
-                <input type="text" id="reg-user" class="input-box" placeholder="Username (အမည်)">
-            </div>
-            <div class="input-group">
-                <input type="email" id="reg-email" class="input-box" placeholder="Email Address">
-            </div>
+            <div class="input-group"><input type="text" id="reg-user" class="input-box" placeholder="Username (အမည်)"></div>
+            <div class="input-group"><input type="email" id="reg-email" class="input-box" placeholder="Email Address"></div>
             <div class="input-group">
                 <input type="password" id="reg-pass" class="input-box" placeholder="Password">
                 <i class="fas fa-eye password-toggle" onclick="togglePassView('reg-pass')"></i>
@@ -120,9 +112,29 @@
             <button class="btn-auth" style="background:var(--success)" onclick="handleRegister()">အကောင့်အသစ်ဖွင့်မည်</button>
             <div class="auth-switch" onclick="switchAuth('login')">အကောင့်ရှိပြီးသားလား? <b>ပြန်ဝင်ရန်</b></div>
         </div>
+
+        <!-- Forget Password Form -->
+        <div id="reset-form" class="hidden">
+            <p style="font-size: 13px; color: #aaa; margin-bottom: 20px;">Password ပြန်ချိန်းရန် link ကို Gmail သို့ ပို့ပေးပါမည်။</p>
+            <div class="input-group"><input type="email" id="reset-email" class="input-box" placeholder="သင့် Gmail ရိုက်ထည့်ပါ"></div>
+            <button class="btn-auth" onclick="handleResetPassword()">Link ပို့ရန်</button>
+            <div class="auth-switch" onclick="switchAuth('login')"><b>ပြန်ဝင်ရန်</b></div>
+        </div>
+
+        <!-- Email Verification Pending Form -->
+        <div id="verify-pending" class="hidden">
+            <h3 style="color:var(--primary)">Email အတည်ပြုရန်</h3>
+            <p class="verify-msg">သင့် Gmail ထဲသို့ အတည်ပြုချက် link ပို့ထားပါသည်။ အကောင့်အသက်ဝင်စေရန် ထို link ကို နှိပ်ပေးပါ။<br>
+                <span id="display-verify-email" class="email-display"></span>
+            </p>
+            <button class="btn-auth" style="background:var(--success)" onclick="checkVerifyStatus()">Verify လုပ်ပြီးပါပြီ</button>
+            <button class="btn-auth" style="background:#333; margin-top:10px;" onclick="resendVerifyEmail()">Confirm Link ပြန်ပို့ရန်</button>
+            <div class="auth-switch" onclick="logout()"><b>အခြားအကောင့်ဖြင့် ဝင်ရန်</b></div>
+        </div>
     </div>  
 </div>  
 
+<!-- Main App Section -->
 <div id="app-section" class="hidden">  
     <div id="map"></div>  
     <div class="overlay-ui">  
@@ -132,7 +144,6 @@
             <button id="follow-btn" class="pointer-all circle-btn active-follow" onclick="recenter()"><i class="fas fa-location-arrow"></i></button>  
             <button class="pointer-all circle-btn" onclick="toggleBell()"><i id="bell-icon" class="fas fa-bell"></i></button>  
         </div>  
-          
         <div class="bottom-panel pointer-all" id="main-panel">  
             <div class="panel-handle" onclick="document.getElementById('main-panel').classList.toggle('active')"></div>  
             <div class="hold-btn-wrapper" id="hold-trigger">  
@@ -140,7 +151,6 @@
                 <button id="main-btn-text" class="btn-main">👮 လက်ရှိနေရာမှာ ဖမ်းနေသည် (၃ စက္ကန့်ဖိပါ)</button>  
             </div>  
             <div style="margin-bottom: 10px;"><label style="font-size:12px; color: #aaa;">အကွာအဝေး: <span id="rad-txt" style="color:var(--primary);">200</span>m</label><input type="range" min="100" max="2000" step="100" value="200" oninput="changeRadius(this.value)" style="width:100%;"></div>  
-              
             <div class="tab-nav">  
                 <div class="tab-item active" id="tab-l" onclick="showTab('list')">စာရင်း</div>  
                 <div class="tab-item" id="tab-c" onclick="showTab('chat')">Chat</div>  
@@ -156,7 +166,6 @@
 
 <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>  
 
-<!-- Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>  
 <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>  
 <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>  
@@ -180,41 +189,47 @@
     let pendingLat, pendingLng;  
     const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];  
 
-    // AUTH LOGIC
+    // --- AUTH LOGIC ---
     auth.onAuthStateChanged((user) => { 
-        if (user) initApp(); 
-        else document.getElementById('auth-section').classList.remove('hidden'); 
+        if (user) {
+            if (user.emailVerified) {
+                initApp(); 
+            } else {
+                showVerifyPending(user.email);
+            }
+        } else {
+            document.getElementById('auth-section').classList.remove('hidden');
+            switchAuth('login');
+        }
     });  
 
     function switchAuth(mode) {
-        document.getElementById('login-form').classList.toggle('hidden', mode === 'reg');
-        document.getElementById('register-form').classList.toggle('hidden', mode === 'login');
+        const forms = ['login-form', 'register-form', 'reset-form', 'verify-pending'];
+        forms.forEach(f => document.getElementById(f).classList.add('hidden'));
+        
+        if(mode === 'login') document.getElementById('login-form').classList.remove('hidden');
+        if(mode === 'reg') document.getElementById('register-form').classList.remove('hidden');
+        if(mode === 'reset') document.getElementById('reset-form').classList.remove('hidden');
+        if(mode === 'verify') document.getElementById('verify-pending').classList.remove('hidden');
     }
 
-    function togglePassView(id) {
-        const input = document.getElementById(id);
-        const icon = input.nextElementSibling;
-        if(input.type === 'password') {
-            input.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
-        }
+    function showVerifyPending(email) {
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('app-section').classList.add('hidden');
+        document.getElementById('display-verify-email').innerText = email;
+        switchAuth('verify');
     }
 
     async function handleLogin() {  
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-pass').value;
         const remember = document.getElementById('remember-me').checked;
-        
-        if(!email || !pass) return alert("ဖြည့်စွက်ရန် လိုအပ်ပါသည်");
-        
+        if(!email || !pass) return alert("Email နှင့် Password ဖြည့်ပါ");
         try { 
             const persistence = remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
             await auth.setPersistence(persistence);
             await auth.signInWithEmailAndPassword(email, pass); 
-        } catch (err) { alert("အီးမေးလ် သို့မဟုတ် ပါတ်စ်ဝပ် မှားနေပါသည်"); }  
+        } catch (err) { alert("ဝင်ရောက်မှု မအောင်မြင်ပါ (Email/Pass မှားနိုင်သည်)"); }  
     }  
 
     async function handleRegister() {
@@ -222,19 +237,51 @@
         const email = document.getElementById('reg-email').value;
         const pass = document.getElementById('reg-pass').value;
         const confirmPass = document.getElementById('reg-confirm').value;
-
-        if(!user || !email || !pass) return alert("အချက်အလက်များ အားလုံးဖြည့်ပါ");
+        if(!user || !email || !pass) return alert("အချက်အလက်အားလုံးဖြည့်ပါ");
         if(pass !== confirmPass) return alert("Password မတူညီပါ");
-        if(pass.length < 6) return alert("Password အနည်းဆုံး ၆ လုံးရှိရပါမည်");
-
         try {
             const res = await auth.createUserWithEmailAndPassword(email, pass);
             await res.user.updateProfile({ displayName: user });
-            alert("အကောင့်ဖွင့်ခြင်း အောင်မြင်ပါသည်။");
+            await res.user.sendEmailVerification(); // Send Confirm Email
+            alert("အကောင့်ဖွင့်ပြီးပါပြီ။ Gmail ထဲသို့ Confirm Link ပို့ထားပါသည်။");
         } catch (err) { alert(err.message); }
     }
 
-    // APP LOGIC
+    async function resendVerifyEmail() {
+        try {
+            await auth.currentUser.sendEmailVerification();
+            alert("Link အသစ်ထပ်ပို့ပေးလိုက်ပါပြီ။");
+        } catch (err) { alert(err.message); }
+    }
+
+    async function checkVerifyStatus() {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+            alert("အတည်ပြုပြီးပါပြီ။ Map သို့ ဝင်နိုင်ပါပြီ။");
+            initApp();
+        } else {
+            alert("Email ထဲရှိ Link ကို မနှိပ်ရသေးပါ။");
+        }
+    }
+
+    async function handleResetPassword() {
+        const email = document.getElementById('reset-email').value;
+        if(!email) return alert("Gmail ရိုက်ထည့်ပါ");
+        try {
+            await auth.sendPasswordResetEmail(email);
+            alert("Password Reset Link ကို Gmail သို့ ပို့လိုက်ပါပြီ။");
+            switchAuth('login');
+        } catch (err) { alert(err.message); }
+    }
+
+    function togglePassView(id) {
+        const input = document.getElementById(id);
+        const icon = input.nextElementSibling;
+        input.type = (input.type === 'password') ? 'text' : 'password';
+        icon.classList.toggle('fa-eye'); icon.classList.toggle('fa-eye-slash');
+    }
+
+    // --- MAIN APP LOGIC ---
     function initApp() {  
         document.getElementById('auth-section').classList.add('hidden');  
         document.getElementById('app-section').classList.remove('hidden');  
@@ -242,17 +289,8 @@
 
         map = L.map('map', { zoomControl: false, attributionControl: false, rotate: true, touchRotate: true }).setView([9.5334, 99.9352], 15);  
         L.tileLayer(styles[0]).addTo(map);  
-
-        map.on('dragstart', () => {  
-            isFollowing = false;  
-            document.getElementById('follow-btn').classList.remove('active-follow');  
-        });  
-
-        map.on('contextmenu', (e) => {  
-            pendingLat = e.latlng.lat;  
-            pendingLng = e.latlng.lng;  
-            document.getElementById('pin-modal').classList.remove('hidden');  
-        });  
+        map.on('dragstart', () => { isFollowing = false; document.getElementById('follow-btn').classList.remove('active-follow'); });  
+        map.on('contextmenu', (e) => { pendingLat = e.latlng.lat; pendingLng = e.latlng.lng; document.getElementById('pin-modal').classList.remove('hidden'); });  
 
         if (window.DeviceOrientationEvent) {  
             window.addEventListener('deviceorientationabsolute', (e) => { if (e.alpha !== null) currentHeading = 360 - e.alpha; updateRot(); }, true);  
@@ -272,18 +310,11 @@
         setupActions(); syncAll(); setupModalEvents();  
     }  
 
-    function updateRot() {  
-        const el = document.getElementById('user-icon-rotate');  
-        if(el) el.style.transform = `rotate(${currentHeading - (map.getBearing ? map.getBearing() : 0)}deg)`;  
-    }  
-
-    function recenter() {   
-        isFollowing = true;   
-        document.getElementById('follow-btn').classList.add('active-follow');   
-        if(uLat) map.setView([uLat, uLng], 17, {animate: true});   
-        if(map.setBearing) map.setBearing(0);  
-    }  
-
+    function updateRot() { const el = document.getElementById('user-icon-rotate'); if(el) el.style.transform = `rotate(${currentHeading - (map.getBearing ? map.getBearing() : 0)}deg)`; }  
+    function recenter() { isFollowing = true; document.getElementById('follow-btn').classList.add('active-follow'); if(uLat) map.setView([uLat, uLng], 17, {animate: true}); if(map.setBearing) map.setBearing(0); }  
+    function closePinModal() { document.getElementById('pin-modal').classList.add('hidden'); }  
+    function setupModalEvents() { document.getElementById('modal-confirm-btn').onclick = () => { if (pendingLat && pendingLng) postPin(pendingLat, pendingLng); closePinModal(); }; }  
+    
     function setupActions() {  
         const btn = document.getElementById('hold-trigger'), prog = document.getElementById('hold-progress'), txt = document.getElementById('main-btn-text');  
         let pressTimer, progInterval;  
@@ -300,19 +331,10 @@
         btn.addEventListener('touchstart', start); btn.addEventListener('touchend', () => { clearInterval(progInterval); clearTimeout(pressTimer); prog.style.width = '0%'; });  
     }  
 
-    function closePinModal() { document.getElementById('pin-modal').classList.add('hidden'); }  
-
-    function setupModalEvents() {  
-        document.getElementById('modal-confirm-btn').onclick = () => {  
-            if (pendingLat && pendingLng) postPin(pendingLat, pendingLng);  
-            closePinModal();  
-        };  
-    }  
-
     function postPin(lat, lng) {  
         const id = Date.now();  
-        const userName = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];  
-        db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: userName });  
+        const name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];  
+        db.ref('pins/' + id).set({ lat, lng, time: id, expires: id + (20 * 60 * 1000), user: name });  
     }  
 
     function syncAll() {  
@@ -325,19 +347,13 @@
                 list.innerHTML += `<div class="list-item" onclick="map.setView([${p.lat}, ${p.lng}], 17); isFollowing=false; document.getElementById('follow-btn').classList.remove('active-follow');"><span><b>${p.user}</b></span><span style="color:var(--danger)">${new Date(p.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false})}</span></div>`;  
             }  
         });  
-
         db.ref('chats').on('value', snap => {  
-            const c = snap.val(), box = document.getElementById('chat-msgs'), now = Date.now();  
+            const c = snap.val(), box = document.getElementById('chat-msgs');  
             box.innerHTML = ""; let lastDate = "";  
             for(let id in c) {  
-                const chat = c[id]; if(chat.expires && now > chat.expires) { db.ref('chats/'+id).remove(); continue; }  
-                const d = new Date(chat.time), dStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' }), tStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });  
-                if (dStr !== lastDate) {  
-                    const label = (dStr === new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })) ? "Today" : dStr;  
-                    box.innerHTML += `<div style="text-align:center; font-size:10px; color:#555; margin:10px 0;">--- ${label} ---</div>`;  
-                    lastDate = dStr;  
-                }  
-                box.innerHTML += `<div style="margin-bottom:10px;"><b style="color:var(--primary); font-size:13px;">${chat.user}</b> <span style="font-size:10px; color:#555; margin-left:5px;">${tStr}</span><div style="color:#ccc; font-size:14px; margin-top:2px;">${chat.txt}</div></div>`;  
+                const chat = c[id]; const d = new Date(chat.time), dStr = d.toLocaleDateString();  
+                if (dStr !== lastDate) { box.innerHTML += `<div style="text-align:center; font-size:10px; color:#555; margin:10px 0;">--- ${dStr} ---</div>`; lastDate = dStr; }  
+                box.innerHTML += `<div style="margin-bottom:10px;"><b style="color:var(--primary); font-size:13px;">${chat.user}</b> <div style="color:#ccc; font-size:14px;">${chat.txt}</div></div>`;  
             }  
             box.scrollTop = box.scrollHeight;  
         });  
@@ -354,20 +370,17 @@
 
     function startAlert() { if(alertLoop) return; document.getElementById('alarm-sound').play(); alertLoop = setInterval(() => { document.getElementById('alarm-sound').play(); if(navigator.vibrate) navigator.vibrate([500, 300, 500]); }, 3000); }  
     function stopAlert() { clearInterval(alertLoop); alertLoop = null; document.getElementById('alarm-sound').pause(); }  
-      
     function sendChat() {   
         const i = document.getElementById('chat-input'); if(!i.value.trim()) return;   
-        const now = Date.now();  
-        const userName = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];
-        db.ref('chats').push({ user: userName, txt: i.value, time: now, expires: now + (24 * 60 * 60 * 1000) });   
+        const name = auth.currentUser.displayName || auth.currentUser.email.split('@')[0];  
+        db.ref('chats').push({ user: name, txt: i.value, time: Date.now() });   
         i.value = "";   
     }  
-
     function showTab(t) { document.getElementById('list-tab').classList.toggle('hidden', t!=='list'); document.getElementById('chat-tab').classList.toggle('hidden', t!=='chat'); document.getElementById('tab-l').classList.toggle('active', t==='list'); document.getElementById('tab-c').classList.toggle('active', t==='chat'); }  
     function toggleBell() { bell = !bell; document.getElementById('bell-icon').className = bell ? 'fas fa-bell' : 'fas fa-bell-slash'; if(!bell) stopAlert(); }  
     function changeRadius(v) { rad = parseInt(v); document.getElementById('rad-txt').innerText = v; if(uCircle) uCircle.setRadius(rad); }  
     function nextMap() { sIdx = (sIdx + 1) % styles.length; L.tileLayer(styles[sIdx]).addTo(map); }  
-    function logout() { if(confirm("Logout လုပ်မည်လား?")) auth.signOut().then(() => location.reload()); }  
+    function logout() { if(confirm("ထွက်မည်လား?")) auth.signOut().then(() => location.reload()); }  
 </script>
 
 </body>  
