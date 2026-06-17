@@ -2,7 +2,7 @@
 <head>  
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
-    <title>Samui Safe Ride</title>  
+    <title>Samui Safe Ride - GPS Arrow Fixed</title>  
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />  
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">  
@@ -25,7 +25,7 @@
     .auth-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }  
     .auth-card { background: var(--card); padding: 30px 25px; border-radius: 25px; width: 100%; max-width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }  
     .input-group { position: relative; margin-bottom: 15px; text-align: left; }
-    .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; outline: none; font-size: 16px; user-select: text !important; }  
+    .input-box { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #252525; color: white; outline: none; font-size: 16px; width: 100%; user-select: text !important; }  
     .pass-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; cursor: pointer; z-index: 10; font-size: 18px; }
     .btn-auth { width: 100%; padding: 15px; border-radius: 15px; background: var(--primary); border: none; color: white; font-weight: bold; margin-top: 10px; cursor: pointer; }  
     .auth-switch { margin-top: 15px; font-size: 13px; color: #aaa; cursor: pointer; }
@@ -41,7 +41,7 @@
     .circle-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--card); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; font-size: 18px; cursor: pointer; }  
     .active-follow { color: var(--primary); border: 2px solid var(--primary); box-shadow: 0 0 15px var(--primary); }  
     
-    /* GPS Arrow */
+    /* GPS Arrow Fix */
     .user-loc-container { position: relative; width: 40px; height: 40px; transition: transform 0.2s ease-out; }  
     .user-dot { width: 18px; height: 18px; background: #00d2ff; border: 3px solid white; border-radius: 50%; position: absolute; top: 11px; left: 11px; z-index: 2; box-shadow: 0 0 15px var(--primary); }  
     .user-arrow { position: absolute; top: 0px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 18px solid #00d2ff; z-index: 1; }  
@@ -118,8 +118,8 @@
     <div id="map"></div>  
     <div class="overlay-ui">  
         <div class="top-left-bar">
-            <!-- Logout icon သာ ချန်ထားသည် -->
             <button class="pointer-all circle-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+            <button id="compass-btn" class="pointer-all circle-btn" onclick="requestCompass()"><i class="fas fa-compass"></i></button>
         </div>  
         <div class="top-right-bar">  
             <button class="pointer-all circle-btn" onclick="nextMap()"><i class="fas fa-layer-group"></i></button>  
@@ -168,12 +168,14 @@
     let pendingLat, pendingLng;  
     const styles = ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];  
 
+    // Password Toggle
     function togglePass(id, icon) {
         const input = document.getElementById(id);
         if (input.type === "password") { input.type = "text"; icon.classList.replace("fa-eye", "fa-eye-slash"); } 
         else { input.type = "password"; icon.classList.replace("fa-eye-slash", "fa-eye"); }
     }
 
+    // Saved Login Data
     function loadSaved() {
         if (localStorage.getItem('ssr_remember') === 'true') {
             document.getElementById('login-email').value = localStorage.getItem('ssr_email') || "";
@@ -182,9 +184,35 @@
         }
     }
 
+    // Compass Permission for iOS
+    function requestCompass() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        document.getElementById('compass-btn').style.color = 'var(--success)';
+                    }
+                });
+        } else {
+            window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+            window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+    }
+
+    function handleOrientation(e) {
+        let heading = e.alpha;
+        if (e.webkitCompassHeading) heading = e.webkitCompassHeading; // iOS support
+        if (heading !== null) {
+            currentHeading = heading;
+            updateRot();
+        }
+    }
+
     function updateRot() {
         const el = document.getElementById('user-icon-rotate');
         if(el) {
+            // Calculate rotation based on map bearing
             const mapBearing = map.getBearing ? map.getBearing() : 0;
             const finalRot = currentHeading - mapBearing;
             el.style.transform = `rotate(${finalRot}deg)`;
@@ -249,10 +277,13 @@
         map.on('rotate', updateRot);
         map.on('contextmenu', (e) => { pendingLat = e.latlng.lat; pendingLng = e.latlng.lng; document.getElementById('pin-modal').classList.remove('hidden'); });
 
+        requestCompass(); // Try to start compass
+
         navigator.geolocation.watchPosition(pos => {  
             uLat = pos.coords.latitude; uLng = pos.coords.longitude;  
             if(isFollowing) map.setView([uLat, uLng], map.getZoom(), {animate: false});  
             
+            // If GPS provides heading (when moving), use it instead of compass
             if (pos.coords.heading !== null && pos.coords.heading !== undefined) {
                 currentHeading = pos.coords.heading;
             }
